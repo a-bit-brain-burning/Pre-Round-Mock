@@ -40,14 +40,15 @@ def configurations():
         yield operation, "warp1024", ["-DARG_LONG_WARPS=1"]
 
 
-def build(nvcc, arches, config):
+def build(nvcc, arches, config, source_bytes=None):
     operation, label, flags = config
     library = BUILD / f"{operation}_{label}.so"
     command = [nvcc, "-O3", "-std=c++17", "--shared", "-Xcompiler=-fPIC"]
     for arch in sorted(arches):
         command.append(f"-gencode=arch=compute_{arch},code=sm_{arch}")
-    command.extend([*flags, "-x", "cu", str(SOURCES[operation]), "-o", str(library)])
-    subprocess.run(command, check=True, env={**os.environ, "TMPDIR": str(BUILD)})
+    source = str(SOURCES[operation]) if source_bytes is None else "-"
+    command.extend([*flags, "-x", "cu", source, "-o", str(library)])
+    subprocess.run(command, input=source_bytes, check=True, env={**os.environ, "TMPDIR": str(BUILD)})
     function = ctypes.CDLL(str(library)).solution
     ptr, integer = ctypes.c_void_p, ctypes.c_int
     function.argtypes = ([ptr, ptr, ctypes.c_size_t] if operation == "floyd_warshall"
@@ -158,6 +159,30 @@ def check_reductions(functions, runs, records):
             record_case(operation, f"ties-{length}", functions,
                         (data.data_ptr(), 1, out.data_ptr(), device_shape.data_ptr(), 2),
                         out, expected, 0, 0, records)
+            data = torch.full((7, length), -float("inf") if value == 1 else float("inf"),
+                              device="cuda")
+            data[1, [3, 4, length - 1]] = float("nan")
+            data[2].fill_(-0.0)
+            data[2, 1::2] = 0.0
+            data[3, [5, length - 1]] = -value
+            data[4, [1, 31, length - 2]] = float("inf") * value
+            data[5, [0, 4, 33]] = -float("nan")
+            data[6, length - 2] = value
+            device_shape = torch.tensor(data.shape, dtype=torch.int32, device="cuda")
+            expected = getattr(torch, operation)(data, dim=1).int()
+            out = torch.empty_like(expected)
+            record_case(operation, f"vector-special-{length}", functions,
+                        (data.data_ptr(), 1, out.data_ptr(), device_shape.data_ptr(), 2),
+                        out, expected, 0, 0, records)
+        data = torch.zeros((3, 128, 256), device="cuda")
+        data[:, [3, 4], ::2] = float("nan")
+        data[:, [1, 4, 127], 1::2] = 1 if operation == "argmax" else -1
+        device_shape = torch.tensor(data.shape, dtype=torch.int32, device="cuda")
+        expected = getattr(torch, operation)(data, dim=1).int()
+        out = torch.empty_like(expected)
+        record_case(operation, "column-groups", functions,
+                    (data.data_ptr(), 1, out.data_ptr(), device_shape.data_ptr(), 3),
+                    out, expected, 0, 0, records)
 
 
 def main():

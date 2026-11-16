@@ -5,8 +5,8 @@
 | 题号 | 题面 | 优化实现 | 默认配置 |
 | --- | --- | --- | --- |
 | 1 / A · All Pairs Shortest Path | [problem.md](1/problem.md) | [code.cpp](1/code.cpp) | 64 × 64 分块，FP32 |
-| 2 / B · Argmax Over Dimension | [problem.md](2/problem.md) | [code.cpp](2/code.cpp) | 跨步归约每线程读取一列，长度 1024 的连续行使用四个 warp |
-| 3 / C · Argmin Over Dimension | [problem.md](3/problem.md) | [code.cpp](3/code.cpp) | 跨步归约每线程读取一列，长度 1024 的连续行使用四个 warp |
+| 2 / B · Argmax Over Dimension | [problem.md](2/problem.md) | [code.cpp](2/code.cpp) | 连续行使用 `float4`，跨步归约按输入形状分配线程 |
+| 3 / C · Argmin Over Dimension | [problem.md](3/problem.md) | [code.cpp](3/code.cpp) | 连续行使用 `float4`，跨步归约按输入形状分配线程 |
 
 `main` 分支保留相同路径的原始版本。用 `git diff main..csxsl -- Day1/1/code.cpp` 可比较第 1 题，其余两题同理。
 
@@ -28,7 +28,22 @@ DPX 用于更新对角块所在行、列以外的方块。题面保证所有有�
 | 每线程处理相邻两列，使用 `float2` 读取 | `ARG_COLUMNS_256` 从 `1` 改为 `2` | `(4,256,256,256), dim=1`，256 MiB |
 | 一个 warp 处理一行 | `ARG_LONG_WARPS` 从 `4` 改为 `1` | `(8,1024,1024), dim=2`，32 MiB |
 
-长度 64 的连续行始终由一个 warp 处理，每个线程读取两个值。以上调整均使用输入数据计算完整输出。B、C 的文件各自可以提交，默认源码只有 `FindMax` 的取值不同。
+长度 64 的连续行由 16 个线程处理，每个线程读取一个 `float4`。线程组先按数值找到极值，再从取得该值的线程中选出最小下标。正零与负零同序，NaN 优先并保留最早下标。长度 1024 的连续行也按 `float4` 读取，默认由四个 warp 合并结果。输入首地址未满足 16 字节边界时，两种长度都使用标量读取。
+
+对于 `(16,128,256), dim=1`，四个线程分别检查同一列中的四组行，再合并候选结果。其余三个公开跨步用例的默认配置由每个线程负责一列，使用编译时已知的步长展开读取循环。其他形状按设备上的 `shape` 计算地址。B、C 各自可以单文件提交，两份代码仅有 `FindMax` 的值不同。
+
+### 新旧版本计时
+
+在 RTX 5060 Laptop GPU 上比较 `90d676f` 与本次默认实现。每组复用同一份输入，预热后测量 16 轮，轮流交换新旧版本的顺序。每轮用 CUDA event 测量连续 8 次调用并计算平均耗时。下表合计为六组用例各自的中位数之和。H20 尚无本次实现的计时。
+
+| 算子 | 旧版合计 | 本次合计 | 耗时减少 |
+| --- | ---: | ---: | ---: |
+| Argmax | 2.975 ms | 2.713 ms | 8.8% |
+| Argmin | 3.072 ms | 2.805 ms | 8.7% |
+
+长度 64 的用例贡献最大，Argmax 从 0.621 ms 降至 0.380 ms，Argmin 从 0.623 ms 降至 0.380 ms。512 MiB 和 256 MiB 两组在此次测量中的变化均小于 0.3%。[各组原始计时与源码 SHA-256](results-1116-reductions-20261116-074928.json)
+
+可使用 [compare_reductions.py](compare_reductions.py) 重复测量。在仓库根目录运行 `flock --exclusive .cache/preround-gpu.lock python Day1/compare_reductions.py`，并按本机环境设置 `--nvcc`。脚本通过 Git 读取基准版本的源码。
 
 ## 验证与计时
 
@@ -68,6 +83,4 @@ flock --exclusive .cache/preround-gpu.lock python Day1/verify.py --timing-runs 5
 
 原仓库记录：2026-11-16 使用 CUDA 12.8.93 编译了全部 12 种配置的 SM90 和 SM120 代码。在 RTX 5060 Laptop GPU 上，A 的四种配置各通过 11 组检查，B 和 C 的四种配置各通过 15 组检查。A 的 `n=4096`，本机 FP32 的 32 × 32 与 64 × 64 配置耗时中位数分别为 69.84 ms、52.68 ms。**H20 的耗时与得分仍需由比赛平台测量。**
 
-[原始五次计时及源码 SHA-256](results-1116-gpu-20261116-022947.json) 按原始字节保留，里面的 `.cu` 文件名仍指向上表的旧路径。该记录的源码哈希对应源仓库 `1d0f196`，当前迁移版本 `adc8a2b` 仅调整头文件和正无穷构造方式，不能将旧记录表述为当前源码已完成新的 GPU 回归。
-
-本次迁移只调整目录、文件名、验证脚本的路径/编译语言参数/哈希路径和使用说明。已做静态检查，没有执行或复现 GPU 正确性实验、性能测量，也没有改动三个优化入口的计算逻辑。
+[原始五次计时及源码 SHA-256](results-1116-gpu-20261116-022947.json) 中的 `.cu` 文件名对应上表的旧路径。该记录的源码哈希对应源仓库 `1d0f196`，迁入时的源码来自 `adc8a2b`。

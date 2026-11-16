@@ -41,15 +41,56 @@ __device__ Candidate warp_reduce(Candidate best) {
 __device__ Candidate read_row(const float* row, int length, int start, int stride) {
     const float infinity = __int_as_float(0x7f800000);
     Candidate best{FindMax ? -infinity : infinity, length};
+    if (length == 1024 && reinterpret_cast<size_t>(row) % alignof(float4) == 0) {
+        const float4* vectors = reinterpret_cast<const float4*>(row);
+        for (int i = start; i < 256; i += stride) {
+            const float4 v = vectors[i];
+            if (i == start || improves(v.x, best.value)) best = {v.x, 4 * i};
+            if (improves(v.y, best.value)) best = {v.y, 4 * i + 1};
+            if (improves(v.z, best.value)) best = {v.z, 4 * i + 2};
+            if (improves(v.w, best.value)) best = {v.w, 4 * i + 3};
+        }
+        return warp_reduce(best);
+    }
     for (int r = start; r < length; r += stride)
         best = choose(best, {row[r], r});
     return warp_reduce(best);
+}
+
+// 将局部极值转换为可由 warp 整数指令比较的顺序，同值保留首次下标。
+__device__ unsigned rank_value(float value) {
+    unsigned bits = __float_as_uint(FindMax ? value : -value);
+    const unsigned magnitude = bits & 0x7fffffffu;
+    if (magnitude == 0) bits = 0;
+    if (magnitude > 0x7f800000u) return 0xffffffffu;
+    return bits & 0x80000000u ? ~bits : (bits ^ 0x80000000u);
+}
+
+__device__ void rows64(const float4* input, int* output, size_t rows) {
+    const unsigned lane = threadIdx.x % 16;
+    const unsigned mask = threadIdx.x % 32 < 16 ? 0xffffu : 0xffff0000u;
+    for (size_t row = size_t(blockIdx.x) * (Threads / 16) + threadIdx.x / 16;
+         row < rows; row += gridDim.x * (Threads / 16)) {
+        const float4 v = input[row * 16 + lane];
+        Candidate best{v.x, int(lane * 4)};
+        if (improves(v.y, best.value)) best = {v.y, int(lane * 4 + 1)};
+        if (improves(v.z, best.value)) best = {v.z, int(lane * 4 + 2)};
+        if (improves(v.w, best.value)) best = {v.w, int(lane * 4 + 3)};
+        const unsigned rank = rank_value(best.value);
+        const unsigned winner = __reduce_max_sync(mask, rank);
+        const int index = __reduce_min_sync(mask, rank == winner ? best.index : 64);
+        if (lane == 0) output[row] = index;
+    }
 }
 
 __global__ void contiguous(const float* input, int* output, const int* shape, int dim) {
     size_t rows = 1;
     for (int i = 0; i < dim; ++i) rows *= shape[i];
     const int length = shape[dim], lane = threadIdx.x % 32, warp = threadIdx.x / 32;
+    if (length == 64 && reinterpret_cast<size_t>(input) % alignof(float4) == 0) {
+        rows64(reinterpret_cast<const float4*>(input), output, rows);
+        return;
+    }
     if (ARG_LONG_WARPS == 1 || length <= 64) {
         for (size_t row = size_t(blockIdx.x) * Warps + warp; row < rows; row += gridDim.x * Warps) {
             Candidate best = read_row(input + row * length, length, lane, 32);
@@ -101,6 +142,44 @@ __device__ void scan_pairs(const float2* input, int* output, size_t rows, int le
     }
 }
 
+__device__ void short_column_grid(const float* input, int* output, size_t rows) {
+    constexpr int Inner = 256, Length = 128;
+    const int group = threadIdx.x % 32 / 8;
+    const int lane = threadIdx.x % 8;
+    for (size_t tile = size_t(blockIdx.x) * Warps + threadIdx.x / 32;
+         tile < rows * (Inner / 8); tile += gridDim.x * Warps) {
+        const size_t col = tile * 8 + lane;
+        const float* base = input + col / Inner * Length * Inner + col % Inner;
+        Candidate best{base[group * Inner], group};
+        #pragma unroll 4
+        for (int i = group + 4; i < Length; i += 4) {
+            const float v = base[i * Inner];
+            if (improves(v, best.value)) best = {v, i};
+        }
+        for (int step = 16; step >= 8; step /= 2) {
+            Candidate other{__shfl_down_sync(0xffffffffu, best.value, step),
+                            __shfl_down_sync(0xffffffffu, best.index, step)};
+            best = choose(best, other);
+        }
+        if (group == 0) output[col] = best.index;
+    }
+}
+
+template<int Length, int Inner>
+__device__ void fixed_columns(const float* input, int* output, size_t rows) {
+    for (size_t col = size_t(blockIdx.x) * Threads + threadIdx.x; col < rows * Inner;
+         col += gridDim.x * Threads) {
+        const float* base = input + (col / Inner) * Length * Inner + col % Inner;
+        Candidate best{base[0], 0};
+        #pragma unroll 8
+        for (int r = 1; r < Length; ++r) {
+            const float value = base[r * Inner];
+            if (improves(value, best.value)) best = {value, r};
+        }
+        output[col] = best.index;
+    }
+}
+
 __global__ void strided(const float* input, int* output, const int* shape, int dim, int ndim) {
     size_t rows = 1, inner = 1;
     for (int i = 0; i < dim; ++i) rows *= shape[i];
@@ -110,6 +189,14 @@ __global__ void strided(const float* input, int* output, const int* shape, int d
                     || (ARG_COLUMNS_256 == 2 && length == 256 && inner == 65536);
     if (pairs && reinterpret_cast<size_t>(input) % alignof(float2) == 0)
         scan_pairs(reinterpret_cast<const float2*>(input), output, rows, length, inner / 2);
+    else if (length == 128 && inner == 128)
+        fixed_columns<128, 128>(input, output, rows);
+    else if (length == 256 && inner == 65536)
+        fixed_columns<256, 65536>(input, output, rows);
+    else if (length == 32 && inner == 262144)
+        fixed_columns<32, 262144>(input, output, rows);
+    else if (length == 128 && inner == 256)
+        short_column_grid(input, output, rows);
     else
         scan_columns(input, output, rows, length, inner);
 }
