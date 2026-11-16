@@ -82,21 +82,32 @@ __global__ void tiled_columns(const float* __restrict__ input, int* __restrict__
     const int col = (int(blockIdx.x) * 32 + lane) * V;
     const int base = col / Inner * Length * Inner + col % Inner;
     constexpr int Count = Length / Parts;
-    const int first = part * Count;
+    float values[Count][V];
+    #pragma unroll
+    for (int r = 0; r < Count; ++r)
+        read_columns(input + base + (part + r * Parts) * Inner, values[r]);
     float best[V];
     int indices[V];
-    read_columns(input + base + first * Inner, best);
     #pragma unroll
-    for (int j = 0; j < V; ++j) indices[j] = first;
-    #pragma unroll 8
-    for (int r = 1; r < Count; ++r) {
-        float v[V];
-        read_columns(input + base + (first + r) * Inner, v);
+    for (int j = 0; j < V; ++j) {
+        float a = values[0][j], b = values[1][j];
         #pragma unroll
-        for (int j = 0; j < V; ++j) {
-            if (improves(v[j], best[j])) indices[j] = first + r;
-            best[j] = extreme(best[j], v[j]);
+        for (int r = 2; r < Count; r += 2) {
+            a = extreme(a, values[r][j]);
+            b = extreme(b, values[r + 1][j]);
         }
+        best[j] = extreme(a, b);
+        int first = Count - 1;
+        if (isnan(best[j])) {
+            #pragma unroll
+            for (int r = Count - 2; r >= 0; --r)
+                if (isnan(values[r][j])) first = r;
+        } else {
+            #pragma unroll
+            for (int r = Count - 2; r >= 0; --r)
+                if (values[r][j] == best[j]) first = r;
+        }
+        indices[j] = part + Parts * first;
     }
     #pragma unroll
     for (int j = 0; j < V; ++j) {
@@ -110,8 +121,9 @@ __global__ void tiled_columns(const float* __restrict__ input, int* __restrict__
             #pragma unroll
             for (int p = 1; p < Parts; ++p) {
                 const float v = partial_values[j][p][lane];
-                if (improves(v, best[j])) indices[j] = partial_indices[j][p][lane];
-                best[j] = extreme(best[j], v);
+                const Candidate selected = choose({best[j], indices[j]}, {v, partial_indices[j][p][lane]});
+                best[j] = selected.value;
+                indices[j] = selected.index;
             }
             output[col + j] = indices[j];
         }
@@ -162,6 +174,62 @@ __global__ void tiled_rows(const float* __restrict__ input, int* __restrict__ ou
         index = min(index, __shfl_xor_sync(mask, index, s, Width));
 #endif
     if (lane == 0) output[row] = index;
+}
+
+template<int Length, int Width>
+__global__ void packed_rows(const float* __restrict__ input, int* __restrict__ output, int rows) {
+    constexpr int V = Length == 1024 ? 4 : Length / Width;
+    constexpr int Block = Length == 1024 ? 256 : Threads;
+    const int tid = threadIdx.x;
+    const int row = Length == 1024 ? int(blockIdx.x) : (int(blockIdx.x) * Block + tid) / Width;
+    if (row >= rows) return;
+    const int lane = tid % Width;
+    const int start = Length == 1024 ? tid * V : lane * V;
+    float values[V];
+    read_columns(input + row * Length + start, values);
+    float local = values[0];
+    #pragma unroll
+    for (int j = 1; j < V; ++j) local = extreme(local, values[j]);
+    const unsigned mask = (0xffffffffu >> (32 - Width)) << ((tid % 32) & ~(Width - 1));
+    const unsigned rank = rank_value(local);
+    unsigned winner = rank;
+#if __CUDA_ARCH__ >= 800
+    winner = __reduce_max_sync(mask, rank);
+#else
+    #pragma unroll
+    for (int s = Width / 2; s; s /= 2)
+        winner = max(winner, __shfl_xor_sync(mask, winner, s, Width));
+#endif
+    const unsigned lanes = __ballot_sync(mask, rank == winner);
+    const int first_lane = __ffs(lanes) - 1;
+    __shared__ unsigned warp_winners[8];
+    __shared__ int warp_indices[8];
+    if ((tid & 31) == first_lane) {
+        int first = V - 1;
+        #pragma unroll
+        for (int j = V - 2; j >= 0; --j)
+            if (values[j] == local || isnan(values[j])) first = j;
+        if constexpr (Length == 64) output[row] = start + first;
+        else {
+            warp_winners[tid / 32] = winner;
+            warp_indices[tid / 32] = start + first;
+        }
+    }
+    if constexpr (Length == 1024) {
+        __syncthreads();
+        if (tid < 32) {
+            unsigned best = warp_winners[tid % 8];
+#if __CUDA_ARCH__ >= 800
+            const unsigned top = __reduce_max_sync(0xffffffffu, best);
+#else
+            unsigned top = best;
+            #pragma unroll
+            for (int s = 4; s; s /= 2) top = max(top, __shfl_xor_sync(0xffffffffu, top, s));
+#endif
+            const unsigned winners = __ballot_sync(0xffffffffu, best == top);
+            if (tid == 0) output[row] = warp_indices[__ffs(winners) - 1];
+        }
+    }
 }
 
 __device__ Candidate warp_reduce(Candidate best) {
@@ -409,16 +477,16 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
             if (layout.length == 128 && layout.inner == 256)
                 return tiled_columns<128, 256, 1, 8><<<n / 32, 256>>>(input, output);
             if (layout.length == 32 && layout.inner == 262144 && address % 8 == 0)
-                return tiled_columns<32, 262144, 2, 4><<<n / 64, 128>>>(input, output);
+                return tiled_columns<32, 262144, 2, 8><<<n / 64, 256>>>(input, output);
             if (ARG_COLUMNS_128 == 2 && layout.length == 128 && layout.inner == 128 && address % 16 == 0)
-                return tiled_columns<128, 128, 4, 4><<<n / 128, 128>>>(input, output);
+                return tiled_columns<128, 128, 4, 8><<<n / 128, 256>>>(input, output);
             if (ARG_COLUMNS_256 == 2 && layout.length == 256 && layout.inner == 65536 && address % 8 == 0)
-                return tiled_columns<256, 65536, 2, 8><<<n / 64, 256>>>(input, output);
+                return tiled_columns<256, 65536, 2, 16><<<n / 64, 512>>>(input, output);
             if (layout.inner == 1 && address % 16 == 0) {
                 if (layout.length == 64)
-                    return tiled_rows<64, 8><<<(n + 15) / 16, Threads>>>(input, output, n);
+                    return packed_rows<64, 16><<<(n + 7) / 8, Threads>>>(input, output, n);
                 if (ARG_LONG_WARPS == 4 && layout.length == 1024)
-                    return tiled_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
+                    return packed_rows<1024, 32><<<n, 256>>>(input, output, n);
             }
         }
         if (layout.length == 64 && layout.inner == 1)
