@@ -35,8 +35,8 @@ def configurations():
             yield "floyd_warshall", f"tile{tile}_dpx{dpx}", [f"-DFW_TILE={tile}", f"-DFW_DPX={dpx}"]
     for operation in ("argmax", "argmin"):
         yield operation, "default", []
-        yield operation, "pairs128", ["-DARG_COLUMNS_128=2"]
-        yield operation, "pairs256", ["-DARG_COLUMNS_256=2"]
+        yield operation, "scalar128", ["-DARG_COLUMNS_128=1"]
+        yield operation, "scalar256", ["-DARG_COLUMNS_256=1"]
         yield operation, "warp1024", ["-DARG_LONG_WARPS=1"]
 
 
@@ -177,6 +177,14 @@ def check_reductions(functions, runs, records):
         data[:, [1, 4, 127], 1::2] = 1 if operation == "argmax" else -1
         expected = getattr(torch, operation)(data, dim=1).int()
         check_indices(operation, "column-groups", functions, data, 1, expected, 0, records)
+        for length, inner in ((128, 128), (256, 65536)):
+            data = torch.full((length, inner), -0.0, device="cuda")
+            data[-1, ::4] = 0.0
+            data[[5, length // 2, length - 1], 1::4] = float("nan")
+            data[[7, length - 2], 2::4] = float("inf") if operation == "argmax" else -float("inf")
+            data[length - 1, 3::4] = 3 if operation == "argmax" else -3
+            expected = getattr(torch, operation)(data, dim=0).int()
+            check_indices(operation, f"tiled-{length}", functions, data, 0, expected, 0, records)
         for offset in (0, 1):
             data = torch.empty(32 * 262144 + offset, device="cuda")[offset:].view(32, 262144)
             data.zero_()

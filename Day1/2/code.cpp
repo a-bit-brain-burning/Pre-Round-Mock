@@ -37,6 +37,17 @@ __device__ bool improves(float next, float previous) {
     return (FindMax ? !(next <= previous) : !(next >= previous)) && !isnan(previous);
 }
 
+__device__ __forceinline__ float extreme(float a, float b) {
+#if __CUDA_ARCH__ >= 800
+    float result;
+    if (FindMax) asm("max.NaN.f32 %0,%1,%2;" : "=f"(result) : "f"(a), "f"(b));
+    else asm("min.NaN.f32 %0,%1,%2;" : "=f"(result) : "f"(a), "f"(b));
+    return result;
+#else
+    return improves(b, a) ? b : a;
+#endif
+}
+
 __device__ Candidate choose(Candidate a, Candidate b) {
     const bool tied = a.value == b.value || (isnan(a.value) && isnan(b.value));
     return improves(b.value, a.value) || (tied && b.index < a.index) ? b : a;
@@ -49,6 +60,108 @@ __device__ unsigned rank_value(float value) {
     if (magnitude == 0) bits = 0;
     if (magnitude > 0x7f800000u) return 0xffffffffu;
     return bits & 0x80000000u ? ~bits : (bits ^ 0x80000000u);
+}
+
+template<int V>
+__device__ __forceinline__ void read_columns(const float* input, float (&values)[V]) {
+    if constexpr (V == 4)
+        asm("ld.global.cg.v4.f32 {%0,%1,%2,%3},[%4];"
+            : "=f"(values[0]), "=f"(values[1]), "=f"(values[2]), "=f"(values[3]) : "l"(input));
+    else if constexpr (V == 2)
+        asm("ld.global.cg.v2.f32 {%0,%1},[%2];" : "=f"(values[0]), "=f"(values[1]) : "l"(input));
+    else
+        values[0] = *input;
+}
+
+template<int Length, int Inner, int V, int Parts>
+__global__ void tiled_columns(const float* __restrict__ input, int* __restrict__ output) {
+    static_assert(Inner % (32 * V) == 0 && Length % Parts == 0);
+    __shared__ float partial_values[V][Parts][32];
+    __shared__ int partial_indices[V][Parts][32];
+    const int lane = threadIdx.x % 32, part = threadIdx.x / 32;
+    const int col = (int(blockIdx.x) * 32 + lane) * V;
+    const int base = col / Inner * Length * Inner + col % Inner;
+    constexpr int Count = Length / Parts;
+    const int first = part * Count;
+    float best[V];
+    int indices[V];
+    read_columns(input + base + first * Inner, best);
+    #pragma unroll
+    for (int j = 0; j < V; ++j) indices[j] = first;
+    #pragma unroll 8
+    for (int r = 1; r < Count; ++r) {
+        float v[V];
+        read_columns(input + base + (first + r) * Inner, v);
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            if (improves(v[j], best[j])) indices[j] = first + r;
+            best[j] = extreme(best[j], v[j]);
+        }
+    }
+    #pragma unroll
+    for (int j = 0; j < V; ++j) {
+        partial_values[j][part][lane] = best[j];
+        partial_indices[j][part][lane] = indices[j];
+    }
+    __syncthreads();
+    if (part == 0) {
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            #pragma unroll
+            for (int p = 1; p < Parts; ++p) {
+                const float v = partial_values[j][p][lane];
+                if (improves(v, best[j])) indices[j] = partial_indices[j][p][lane];
+                best[j] = extreme(best[j], v);
+            }
+            output[col + j] = indices[j];
+        }
+    }
+}
+
+template<int Length, int Width>
+__global__ void tiled_rows(const float* __restrict__ input, int* __restrict__ output, int rows) {
+    const int row = (int(blockIdx.x) * Threads + int(threadIdx.x)) / Width;
+    if (row >= rows) return;
+    const int lane = threadIdx.x % Width;
+    constexpr int Groups = Length / (4 * Width);
+    float values[Groups][4];
+    #pragma unroll
+    for (int g = 0; g < Groups; ++g)
+        read_columns(input + row * Length + (g * Width + lane) * 4, values[g]);
+    float local = values[0][0];
+    #pragma unroll
+    for (int g = 0; g < Groups; ++g) {
+        const float a = extreme(values[g][0], values[g][1]);
+        const float b = extreme(values[g][2], values[g][3]);
+        local = extreme(local, extreme(a, b));
+    }
+    const unsigned mask = (0xffffffffu >> (32 - Width)) << ((threadIdx.x % 32) & ~(Width - 1));
+    unsigned winner = rank_value(local);
+#if __CUDA_ARCH__ >= 800
+    winner = __reduce_max_sync(mask, winner);
+#else
+    #pragma unroll
+    for (int s = Width / 2; s; s /= 2)
+        winner = max(winner, __shfl_xor_sync(mask, winner, s, Width));
+#endif
+    const unsigned bits = winner & 0x80000000u ? winner ^ 0x80000000u : ~winner;
+    const float target = FindMax ? __uint_as_float(bits) : -__uint_as_float(bits);
+    int index = Length;
+    #pragma unroll
+    for (int g = Groups - 1; g >= 0; --g) {
+        #pragma unroll
+        for (int j = 3; j >= 0; --j)
+            if (values[g][j] == target || (winner == 0xffffffffu && isnan(values[g][j])))
+                index = (g * Width + lane) * 4 + j;
+    }
+#if __CUDA_ARCH__ >= 800
+    index = __reduce_min_sync(mask, index);
+#else
+    #pragma unroll
+    for (int s = Width / 2; s; s /= 2)
+        index = min(index, __shfl_xor_sync(mask, index, s, Width));
+#endif
+    if (lane == 0) output[row] = index;
 }
 
 __device__ Candidate warp_reduce(Candidate best) {
@@ -290,6 +403,24 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
         shape = nullptr;
         const size_t rows = layout.rows;
         const size_t outputs = rows * layout.inner;
+        if (outputs <= size_t(0x7fffffff / layout.length)) {
+            const int n = int(outputs);
+            const size_t address = reinterpret_cast<size_t>(input);
+            if (layout.length == 128 && layout.inner == 256)
+                return tiled_columns<128, 256, 1, 8><<<n / 32, 256>>>(input, output);
+            if (layout.length == 32 && layout.inner == 262144 && address % 8 == 0)
+                return tiled_columns<32, 262144, 2, 4><<<n / 64, 128>>>(input, output);
+            if (ARG_COLUMNS_128 == 2 && layout.length == 128 && layout.inner == 128 && address % 16 == 0)
+                return tiled_columns<128, 128, 4, 4><<<n / 128, 128>>>(input, output);
+            if (ARG_COLUMNS_256 == 2 && layout.length == 256 && layout.inner == 65536 && address % 8 == 0)
+                return tiled_columns<256, 65536, 2, 8><<<n / 64, 256>>>(input, output);
+            if (layout.inner == 1 && address % 16 == 0) {
+                if (layout.length == 64)
+                    return tiled_rows<64, 8><<<(n + 15) / 16, Threads>>>(input, output, n);
+                if (ARG_LONG_WARPS == 4 && layout.length == 1024)
+                    return tiled_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
+            }
+        }
         if (layout.length == 64 && layout.inner == 1)
             return fixed_layout<64, 1><<<grid_for(rows, Threads / 16), Threads>>>(input, output, rows);
         if (layout.length == 1024 && layout.inner == 1)
