@@ -1,10 +1,10 @@
 #include <cuda_runtime.h>
 
 #ifndef ARG_COLUMNS_128
-#define ARG_COLUMNS_128 1
+#define ARG_COLUMNS_128 2
 #endif
 #ifndef ARG_COLUMNS_256
-#define ARG_COLUMNS_256 1
+#define ARG_COLUMNS_256 2
 #endif
 #ifndef ARG_LONG_WARPS
 #define ARG_LONG_WARPS 4
