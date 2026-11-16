@@ -28,10 +28,10 @@ DPX 用于更新对角块所在行、列以外的方块。题面保证所有有�
 
 | 题目 | H20 分数 | 六组总时间 | 正确性 | 提交文件 |
 | --- | ---: | ---: | ---: | --- |
-| B · Argmax | 840.5362 | 350.832 µs | 6/6 | [B 的 code.cpp](https://github.com/a-bit-brain-burning/Pre-Round-Mock/blob/c777c65a96730101b2358b4117331abc74388120/Day1/2/code.cpp) |
-| C · Argmin | 838.3569 | 351.744 µs | 6/6 | [C 的 code.cpp](https://github.com/a-bit-brain-burning/Pre-Round-Mock/blob/c777c65a96730101b2358b4117331abc74388120/Day1/3/code.cpp) |
+| B · Argmax | 863.0907 | 341.664 µs | 6/6 | [B 的 code.cpp](https://github.com/a-bit-brain-burning/Pre-Round-Mock/blob/fc92a86c32a70901cc3927f869a72111c33e9b9a/Day1/2/code.cpp) |
+| C · Argmin | 859.5084 | 343.088 µs | 6/6 | [C 的 code.cpp](https://github.com/a-bit-brain-burning/Pre-Round-Mock/blob/fc92a86c32a70901cc3927f869a72111c33e9b9a/Day1/3/code.cpp) |
 
-这两份实现按归约长度和相邻元素的距离选择线程分组。长度 64 的连续行分配 8 个线程，长度 1024 的连续行分配一个 warp。跨列归约时，多个 warp 分段求极值，再合并取得首次下标。相同极值、NaN、正负零、输入起始地址与不同的 `shape` 存储位置均有本机检查。[逐轮实验与 H20 经验](H20-reduction-experiments.md) · [分组时间与正式提交编号](results-1116-h20.json)
+这两份实现按归约长度和相邻元素的距离选择线程分组。长度 64 的连续行分配 4 个线程；长度 1024 时 B 使用 16 个线程，C 使用 32 个线程。跨列归约时，多个 warp 分段求极值，再合并取得首次下标。相同极值、相邻 FP32 数值、NaN、正负零、输入起始地址与不同的 `shape` 存储位置均有本机检查。[逐轮实验与 H20 经验](H20-reduction-experiments.md) · [分组时间与正式提交编号](results-1116-h20.json)
 
 ### CPU 传入 `shape` 的计时
 
