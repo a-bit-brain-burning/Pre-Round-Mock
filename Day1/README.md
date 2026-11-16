@@ -1,4 +1,4 @@
-# Week1 · 2026-11-16 模拟题
+# Day1 · 2026-11-16 模拟题
 
 当前 `main` 分支保存原始题面和起始代码。
 
@@ -8,7 +8,7 @@
 | [2 / B](2/problem.md) | 沿指定维度返回最大值下标，并列选最小下标 | [code.cpp](2/code.cpp)：空入口模板 |
 | [3 / C](3/problem.md) | 沿指定维度返回最小值下标，并列选最小下标 | [code.cpp](3/code.cpp)：空入口模板 |
 
-优化实现位于 [csxsl 分支](https://github.com/a-bit-brain-burning/Pre-Round-Mock/tree/csxsl/Week1)，三个题目的目录和入口文件名保持一致。
+优化实现位于 [csxsl 分支](https://github.com/a-bit-brain-burning/Pre-Round-Mock/tree/csxsl/Day1)，三个题目的目录和入口文件名保持一致。
 
 ## 来源
 
