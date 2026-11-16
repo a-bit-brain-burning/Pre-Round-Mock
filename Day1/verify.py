@@ -121,8 +121,17 @@ def check_graphs(functions, runs, records):
                     out, expected, n**3, runs if n in GRAPH_SIZES else 0, records)
 
 
+def check_indices(operation, case, functions, data, dim, expected, runs, records):
+    out = torch.empty_like(expected)
+    for device in ("cpu", "cuda"):
+        sizes = torch.tensor(data.shape, device=device, dtype=torch.int32)
+        args = (data.data_ptr(), dim, out.data_ptr(), sizes.data_ptr(), data.ndim)
+        record_case(operation, f"{case},shape_device={device}", functions, args, out, expected,
+                    data.numel() * data.element_size(), runs, records)
+
+
 def check_reductions(functions, runs, records):
-    extra = (((1,), 0), ((4, 65), 1), ((1097, 97), 1), ((7, 33, 5), 1),
+    extra = (((1,), 0), ((8, 8), 0), ((4, 65), 1), ((1097, 97), -1), ((7, 33, 5), 1),
              ((2, 5, 1), 1), ((1, 128, 128), 1), ((1, 256, 256, 256), 1))
     for shape, dim in (*extra, *SHAPES):
         public_case = (shape, dim) in SHAPES
@@ -140,25 +149,18 @@ def check_reductions(functions, runs, records):
                 flat[::3] = float("inf")
                 flat[1::5] = -float("inf")
                 flat[2::7] = -0.0
-        device_shape = torch.tensor(shape, dtype=torch.int32, device="cuda")
         for operation in ("argmax", "argmin"):
             expected = getattr(torch, operation)(data, dim=dim).int()
-            out = torch.empty_like(expected)
-            args = (data.data_ptr(), dim, out.data_ptr(), device_shape.data_ptr(), len(shape))
-            record_case(operation, f"{shape},dim={dim}", functions, args, out, expected,
-                        data.numel() * data.element_size(), runs if public_case else 0, records)
+            check_indices(operation, f"{shape},dim={dim}", functions, data, dim, expected,
+                          runs if public_case else 0, records)
     for operation in ("argmax", "argmin"):
         for length in (64, 1024):
             data = torch.zeros((3, length), device="cuda")
             value = 1 if operation == "argmax" else -1
             data[1, [31, 32, length - 1]] = value
             data[2, [-1]] = value
-            device_shape = torch.tensor(data.shape, device="cuda", dtype=torch.int32)
             expected = torch.tensor([0, 31, length - 1], dtype=torch.int32, device="cuda")
-            out = torch.empty_like(expected)
-            record_case(operation, f"ties-{length}", functions,
-                        (data.data_ptr(), 1, out.data_ptr(), device_shape.data_ptr(), 2),
-                        out, expected, 0, 0, records)
+            check_indices(operation, f"ties-{length}", functions, data, 1, expected, 0, records)
             data = torch.full((7, length), -float("inf") if value == 1 else float("inf"),
                               device="cuda")
             data[1, [3, 4, length - 1]] = float("nan")
@@ -168,21 +170,13 @@ def check_reductions(functions, runs, records):
             data[4, [1, 31, length - 2]] = float("inf") * value
             data[5, [0, 4, 33]] = -float("nan")
             data[6, length - 2] = value
-            device_shape = torch.tensor(data.shape, dtype=torch.int32, device="cuda")
             expected = getattr(torch, operation)(data, dim=1).int()
-            out = torch.empty_like(expected)
-            record_case(operation, f"vector-special-{length}", functions,
-                        (data.data_ptr(), 1, out.data_ptr(), device_shape.data_ptr(), 2),
-                        out, expected, 0, 0, records)
+            check_indices(operation, f"vector-special-{length}", functions, data, 1, expected, 0, records)
         data = torch.zeros((3, 128, 256), device="cuda")
         data[:, [3, 4], ::2] = float("nan")
         data[:, [1, 4, 127], 1::2] = 1 if operation == "argmax" else -1
-        device_shape = torch.tensor(data.shape, dtype=torch.int32, device="cuda")
         expected = getattr(torch, operation)(data, dim=1).int()
-        out = torch.empty_like(expected)
-        record_case(operation, "column-groups", functions,
-                    (data.data_ptr(), 1, out.data_ptr(), device_shape.data_ptr(), 3),
-                    out, expected, 0, 0, records)
+        check_indices(operation, "column-groups", functions, data, 1, expected, 0, records)
 
 
 def main():

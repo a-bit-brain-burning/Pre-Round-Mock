@@ -20,6 +20,19 @@ static_assert(ARG_LONG_WARPS == 1 || ARG_LONG_WARPS == Warps, "invalid ARG_LONG_
 
 struct Candidate { float value; int index; };
 
+struct Layout {
+    size_t rows;
+    size_t inner;
+    int length;
+};
+
+__host__ __device__ Layout get_layout(const int* shape, int dim, int ndim) {
+    Layout layout{1, 1, shape[dim]};
+    for (int i = 0; i < dim; ++i) layout.rows *= shape[i];
+    for (int i = dim + 1; i < ndim; ++i) layout.inner *= shape[i];
+    return layout;
+}
+
 __device__ bool improves(float next, float previous) {
     return (FindMax ? next > previous : next < previous) || (isnan(next) && !isnan(previous));
 }
@@ -77,16 +90,25 @@ __device__ void rows64(const float4* input, int* output, size_t rows) {
         if (improves(v.z, best.value)) best = {v.z, int(lane * 4 + 2)};
         if (improves(v.w, best.value)) best = {v.w, int(lane * 4 + 3)};
         const unsigned rank = rank_value(best.value);
+#if __CUDA_ARCH__ >= 800
         const unsigned winner = __reduce_max_sync(mask, rank);
         const int index = __reduce_min_sync(mask, rank == winner ? best.index : 64);
+#else
+        unsigned winner = rank;
+        for (int step = 8; step > 0; step /= 2)
+            winner = max(winner, __shfl_xor_sync(mask, winner, step, 16));
+        int index = rank == winner ? best.index : 64;
+        for (int step = 8; step > 0; step /= 2)
+            index = min(index, __shfl_xor_sync(mask, index, step, 16));
+#endif
         if (lane == 0) output[row] = index;
     }
 }
 
-__global__ void contiguous(const float* input, int* output, const int* shape, int dim) {
-    size_t rows = 1;
-    for (int i = 0; i < dim; ++i) rows *= shape[i];
-    const int length = shape[dim], lane = threadIdx.x % 32, warp = threadIdx.x / 32;
+__global__ void contiguous(const float* input, int* output, const int* shape, int dim, Layout layout) {
+    if (shape) layout = get_layout(shape, dim, dim + 1);
+    const size_t rows = layout.rows;
+    const int length = layout.length, lane = threadIdx.x % 32, warp = threadIdx.x / 32;
     if (length == 64 && reinterpret_cast<size_t>(input) % alignof(float4) == 0) {
         rows64(reinterpret_cast<const float4*>(input), output, rows);
         return;
@@ -180,11 +202,10 @@ __device__ void fixed_columns(const float* input, int* output, size_t rows) {
     }
 }
 
-__global__ void strided(const float* input, int* output, const int* shape, int dim, int ndim) {
-    size_t rows = 1, inner = 1;
-    for (int i = 0; i < dim; ++i) rows *= shape[i];
-    for (int i = dim + 1; i < ndim; ++i) inner *= shape[i];
-    const int length = shape[dim];
+__global__ void strided(const float* input, int* output, const int* shape, int dim, int ndim, Layout layout) {
+    if (shape) layout = get_layout(shape, dim, ndim);
+    const size_t rows = layout.rows, inner = layout.inner;
+    const int length = layout.length;
     const bool pairs = (ARG_COLUMNS_128 == 2 && length == 128 && inner == 128)
                     || (ARG_COLUMNS_256 == 2 && length == 256 && inner == 65536);
     if (pairs && reinterpret_cast<size_t>(input) % alignof(float2) == 0)
@@ -203,8 +224,18 @@ __global__ void strided(const float* input, int* output, const int* shape, int d
 }
 
 extern "C" void solution(const float* input, int dim, int* output, const int* shape, int ndim) {
+    if (dim < 0) dim += ndim;
+    if (dim < 0 || dim >= ndim) return;
+    cudaPointerAttributes attributes{};
+    if (cudaPointerGetAttributes(&attributes, shape) != cudaSuccess) return;
+    Layout layout{};
+    if (attributes.type == cudaMemoryTypeUnregistered || attributes.type == cudaMemoryTypeHost) {
+        layout = get_layout(shape, dim, ndim);
+        if (layout.rows == 0 || layout.inner == 0 || layout.length == 0) return;
+        shape = nullptr;
+    }
     if (dim == ndim - 1)
-        contiguous<<<512, Threads>>>(input, output, shape, dim);
+        contiguous<<<512, Threads>>>(input, output, shape, dim, layout);
     else
-        strided<<<512, Threads>>>(input, output, shape, dim, ndim);
+        strided<<<512, Threads>>>(input, output, shape, dim, ndim, layout);
 }
