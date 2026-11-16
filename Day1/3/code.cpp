@@ -176,6 +176,47 @@ __global__ void tiled_rows(const float* __restrict__ input, int* __restrict__ ou
     if (lane == 0) output[row] = index;
 }
 
+template<int Length, int Inner, int V, int Columns>
+__global__ void warp_columns(const float* __restrict__ input, int* __restrict__ output) {
+    constexpr int Groups = 32 / Columns, Count = Length / Groups;
+    constexpr int Tile = Columns * V;
+    static_assert(Inner % Tile == 0 && Length % Groups == 0);
+    const int lane = threadIdx.x % 32, group = lane / Columns;
+    const int warp = int(blockIdx.x) * Warps + int(threadIdx.x) / 32;
+    const int col = warp * Tile + (lane % Columns) * V;
+    const int base = col / Inner * Length * Inner + col % Inner;
+    const int first = group * Count;
+    float best[V];
+    int index[V];
+    read_columns(input + base + first * Inner, best);
+    #pragma unroll
+    for (int j = 0; j < V; ++j) index[j] = first;
+    #pragma unroll 8
+    for (int r = 1; r < Count; ++r) {
+        float values[V];
+        read_columns(input + base + (first + r) * Inner, values);
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            if (improves(values[j], best[j])) index[j] = first + r;
+            best[j] = extreme(values[j], best[j]);
+        }
+    }
+    #pragma unroll
+    for (int step = Columns; step < 32; step *= 2) {
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            const float v = __shfl_down_sync(0xffffffffu, best[j], step);
+            const int k = __shfl_down_sync(0xffffffffu, index[j], step);
+            if (improves(v, best[j])) index[j] = k;
+            best[j] = extreme(best[j], v);
+        }
+    }
+    if (group == 0) {
+        #pragma unroll
+        for (int j = 0; j < V; ++j) output[col + j] = index[j];
+    }
+}
+
 template<int Length, int Width>
 __global__ void packed_rows(const float* __restrict__ input, int* __restrict__ output, int rows) {
     constexpr int V = Length == 1024 ? 4 : Length / Width;
@@ -475,18 +516,18 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
             const int n = int(outputs);
             const size_t address = reinterpret_cast<size_t>(input);
             if (layout.length == 128 && layout.inner == 256)
-                return tiled_columns<128, 256, 1, 8><<<n / 32, 256>>>(input, output);
+                return warp_columns<128, 256, 1, 8><<<n / 32, Threads>>>(input, output);
             if (layout.length == 32 && layout.inner == 262144 && address % 16 == 0)
-                return tiled_columns<32, 262144, 4, 4><<<n / 128, 128>>>(input, output);
+                return warp_columns<32, 262144, 4, 8><<<n / 128, Threads>>>(input, output);
             if (ARG_COLUMNS_128 == 2 && layout.length == 128 && layout.inner == 128 && address % 16 == 0)
-                return tiled_columns<128, 128, 2, 8><<<n / 64, 256>>>(input, output);
+                return warp_columns<128, 128, 2, 16><<<n / 128, Threads>>>(input, output);
             if (ARG_COLUMNS_256 == 2 && layout.length == 256 && layout.inner == 65536 && address % 16 == 0)
-                return tiled_columns<256, 65536, 4, 8><<<n / 128, 256>>>(input, output);
+                return warp_columns<256, 65536, 4, 8><<<n / 128, Threads>>>(input, output);
             if (layout.inner == 1 && address % 16 == 0) {
                 if (layout.length == 64)
-                    return packed_rows<64, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
+                    return tiled_rows<64, 2><<<(n + 63) / 64, Threads>>>(input, output, n);
                 if (ARG_LONG_WARPS == 4 && layout.length == 1024)
-                    return packed_rows<1024, 32><<<n, 256>>>(input, output, n);
+                    return tiled_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
             }
         }
         if (layout.length == 64 && layout.inner == 1)
