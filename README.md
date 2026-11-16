@@ -11,6 +11,8 @@
 
 ## Day1 · 2026-11-16
 
+B、C 当前记录的最高 H20 正式成绩分别为 840.5362 分和 838.3569 分，均通过全部六组测试。比赛平台选择 CUDA C++，每题提交一份文件。[B 提交源码](https://github.com/a-bit-brain-burning/Pre-Round-Mock/blob/c777c65a96730101b2358b4117331abc74388120/Day1/2/code.cpp) · [C 提交源码](https://github.com/a-bit-brain-burning/Pre-Round-Mock/blob/c777c65a96730101b2358b4117331abc74388120/Day1/3/code.cpp) · [逐轮方法和效果](Day1/H20-reduction-experiments.md) · [原始分组耗时与提交编号](Day1/results-1116-h20.json)
+
 | 题号 | 题目 | 题面 | 代码 |
 | --- | --- | --- | --- |
 | 1 / A | All Pairs Shortest Path | [problem.md](Day1/1/problem.md) | [code.cpp](Day1/1/code.cpp) |
