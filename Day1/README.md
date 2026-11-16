@@ -1,19 +1,27 @@
-# Day1 · 2026-11-16 模拟题
+# Day1 · CUDA 模拟题最优实测版本
 
-当前 `main` 分支保存原始题面和起始代码。
+当前 `Fomak` 分支保存三个可独立提交的源码，以及验证程序和精简成绩记录。
 
-| 题号 | 内容 | 原始代码状态 |
+| 题目 | 源码 | 状态 |
 | --- | --- | --- |
-| [1 / A](1/problem.md) | 有向正权图的所有点对最短路 | [code.cpp](1/code.cpp)：逐中转点启动 kernel 的 Floyd 实现 |
-| [2 / B](2/problem.md) | 沿指定维度返回最大值下标，并列选最小下标 | [code.cpp](2/code.cpp)：空入口模板 |
-| [3 / C](3/problem.md) | 沿指定维度返回最小值下标，并列选最小下标 | [code.cpp](3/code.cpp)：空入口模板 |
+| A · 全源最短路 | [1/code.cpp](1/code.cpp) | 已完成；本轮没有改动，19 项本机正确性检查通过 |
+| B · argmax | [2/code.cpp](2/code.cpp) | H20 正式评测 6/6，通过时间 308.704 μs，**955.2419 分** |
+| C · argmin | [3/code.cpp](3/code.cpp) | H20 正式评测 6/6，通过时间 308.864 μs，**954.7471 分** |
 
-优化实现位于 [csxsl 分支](https://github.com/a-bit-brain-burning/Pre-Round-Mock/tree/csxsl/Day1)，三个题目的目录和入口文件名保持一致。
+两题各通过 357 项本机正确性检查，SM90/SM120 编译通过。保留 CPU/GPU shape 支持、并列取首个索引、NaN、正负零、无穷值、非对齐输入和输出边界处理。每个源码均提供题目要求的 `extern "C" void solution(...)` 入口。
 
-## 来源
+第 2、3 组使用独立 L2 持久缓存窗口，并在其他尺寸恢复初始配额。第 2 组采用 float2 CG 流式读取，第 5 组使用四 CTA cluster 默认调度。第 4 组对两个独立列块分别同步；argmin 的非输出 warp 到达屏障后退出。
 
-- 来源仓库：[a-bit-brain-burning/Preround](https://github.com/a-bit-brain-burning/Preround)。
-- 题面与原始代码：`main@8b2795f7e846d3433b942fb88579a92d77462c56` 的 `mock/11-16/{1,2,3}/`。仅清理了第 1 题 `code.cpp` 的三处行末空白，未修改题面、接口或计算逻辑。
-- csxsl 优化实现：`sim1116-csxsl@adc8a2bea4a01c9f0213569aa613b47d1d57b5e4` 的 `sim-1116/`。
+**960 分尚未达到，已按用户要求停止优化。** 所选源码各有一次正式成绩，细小差异不代表稳定加速。缓存优化的收益依赖评测时的缓存状态，不能视作完全冷缓存带宽的同等提升。
 
-本次整理只进行文件、路径、接口和 Git diff 静态检查，没有执行 GPU 正确性实验或性能测量。已有验证记录随优化实现保留在 `csxsl` 分支，来源版本和硬件边界由该分支文档说明。
+[best-results.json](best-results.json) 包含完整任务号、源码 SHA-256、六组耗时和缓存配置；[verification-results.json](verification-results.json) 保存对应正确性记录。完整历史实验和日志保留在本地分支 `Fomak-local-experiments-c214f9d`，未包含在此次远程提交中。
+
+本机验证使用 CUDA 12.8.93。安装支持相应架构的 CUDA 工具链后，可运行：
+
+```bash
+nvcc -O2 -std=c++20 -gencode=arch=compute_90,code=sm_90 -gencode=arch=compute_120,code=sm_120 -x cu verify.cu -o /tmp/verify-day1
+/tmp/verify-day1 --reductions
+/tmp/verify-day1 --specialized
+```
+
+本机 RTX 5070 Laptop 的耗时仅用于正确性诊断；表中性能来自真实 H20 正式评测。

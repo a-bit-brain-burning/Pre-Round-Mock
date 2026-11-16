@@ -1,0 +1,60 @@
+{
+  "verified_utc": "2026-11-16T16:34:34.970549+00:00",
+  "status": "PASS",
+  "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU SM=120",
+  "compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0",
+  "compiled_architectures": [
+    "sm_90",
+    "sm_120"
+  ],
+  "passed_cases": {
+    "A": 19,
+    "B": 357,
+    "C": 357
+  },
+  "source_sha256": {
+    "1/code.cpp": "07bca6785650a9df6524fa51dca2d4aa4bb71389517dc257764dc5a674ebf059",
+    "2/code.cpp": "0e0362ad577aa51831dd77001675f1f4378fd4e4cdf722b23a2b72bdc78c9c6e",
+    "3/code.cpp": "f83ad61b16e02571ee89e75087ccc807e223fcd010c156f347f9b121968939bf"
+  },
+  "references": {
+    "A": "CPU all-pairs Dijkstra",
+    "B": "CPU row-major argmax with first-index ties",
+    "C": "CPU row-major argmin with first-index ties"
+  },
+  "coverage": [
+    "all published sizes",
+    "tile tails",
+    "cross-tile chains",
+    "disconnected graphs",
+    "large integer weights",
+    "first-index ties",
+    "NaNs",
+    "positive and negative infinity",
+    "negative reduction dimension",
+    "empty non-reduced dimension",
+    "unaligned input",
+    "output guards",
+    "CPU and GPU shape pointers",
+    "exact public 8x8 sample",
+    "CPU shape lifetime after asynchronous return",
+    "ctypes ABI with independent shared libraries",
+    "aligned vector loads",
+    "all argmax specializations",
+    "signed-zero ties",
+    "random FP32 bit patterns",
+    "subnormal values"
+  ],
+  "selected_source_validation": {
+    "argmax": {
+      "sha256": "0e0362ad577aa51831dd77001675f1f4378fd4e4cdf722b23a2b72bdc78c9c6e",
+      "note": "Use B results from this paired verifier build; the other operation in that build is a comparator."
+    },
+    "argmin": {
+      "sha256": "f83ad61b16e02571ee89e75087ccc807e223fcd010c156f347f9b121968939bf",
+      "note": "Use C results from this paired verifier build; the other operation in that build is a comparator."
+    }
+  },
+  "evidence_location": "Full logs retained on local-only branch Fomak-local-experiments-c214f9d; formal job IDs and times are in best-results.json.",
+  "h20_result_record": "best-results.json"
+}
