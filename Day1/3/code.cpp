@@ -159,12 +159,20 @@ __global__ void tiled_rows(const float* __restrict__ input, int* __restrict__ ou
     const unsigned bits = winner & 0x80000000u ? winner ^ 0x80000000u : ~winner;
     const float target = FindMax ? __uint_as_float(bits) : -__uint_as_float(bits);
     int index = Length;
-    #pragma unroll
-    for (int g = Groups - 1; g >= 0; --g) {
+    if (winner == 0xffffffffu) {
         #pragma unroll
-        for (int j = 3; j >= 0; --j)
-            if (values[g][j] == target || (winner == 0xffffffffu && isnan(values[g][j])))
-                index = (g * Width + lane) * 4 + j;
+        for (int g = Groups - 1; g >= 0; --g) {
+            #pragma unroll
+            for (int j = 3; j >= 0; --j)
+                if (isnan(values[g][j])) index = (g * Width + lane) * 4 + j;
+        }
+    } else {
+        #pragma unroll
+        for (int g = Groups - 1; g >= 0; --g) {
+            #pragma unroll
+            for (int j = 3; j >= 0; --j)
+                if (values[g][j] == target) index = (g * Width + lane) * 4 + j;
+        }
     }
 #if __CUDA_ARCH__ >= 800
     index = __reduce_min_sync(mask, index);
@@ -421,6 +429,55 @@ __global__ void radix_columns(const float* __restrict__ input, int* __restrict__
                 b[j] = max(b[j], latest[j][p][lane]);
             }
             output[col + j] = refine_range<Length, Inner>(input + base + j, a[j], b[j]);
+        }
+    }
+}
+
+template<int Length, int Inner, int V, int Parts>
+__global__ void stream_columns(const float* __restrict__ input, int* __restrict__ output) {
+    constexpr int Count = Length / Parts;
+    static_assert(Inner % (32 * V) == 0 && Length % Parts == 0);
+    __shared__ float part_value[V][Parts][32];
+    __shared__ int part_index[V][Parts][32];
+    const int lane = threadIdx.x % 32, part = threadIdx.x / 32;
+    const int col = (int(blockIdx.x) * 32 + lane) * V;
+    const int start = part * Count;
+    const float* base = input + col / Inner * Length * Inner + col % Inner + start * Inner;
+    float best[V];
+    int index[V]{};
+    read_columns(base, best);
+    #pragma unroll 8
+    for (int i = 1; i < Count; ++i) {
+        float values[V];
+        read_columns(base + i * Inner, values);
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            if (FindMax ? values[j] > best[j] : values[j] < best[j]) index[j] = i;
+            best[j] = extreme(best[j], values[j]);
+        }
+    }
+    #pragma unroll
+    for (int j = 0; j < V; ++j) {
+        if (isnan(best[j])) {
+            for (int i = 0; i < Count; ++i) {
+                if (isnan(base[i * Inner + j])) { index[j] = i; break; }
+            }
+        }
+        part_value[j][part][lane] = best[j];
+        part_index[j][part][lane] = start + index[j];
+    }
+    __syncthreads();
+    if (part == 0) {
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            int first = index[j];
+            #pragma unroll
+            for (int p = 1; p < Parts; ++p) {
+                const float v = part_value[j][p][lane];
+                if (improves(v, best[j])) first = part_index[j][p][lane];
+                best[j] = extreme(best[j], v);
+            }
+            output[col + j] = first;
         }
     }
 }
@@ -701,18 +758,18 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
             const int n = int(outputs);
             const size_t address = reinterpret_cast<size_t>(input);
             if (layout.length == 128 && layout.inner == 256)
-                return radix_columns<128, 256, 1, 8><<<n / 32, 256>>>(input, output);
+                return tiled_columns<128, 256, 1, 8><<<n / 32, 256>>>(input, output);
             if (layout.length == 32 && layout.inner == 262144 && address % 16 == 0)
-                return radix_columns<32, 262144, 4, 4><<<n / 128, 128>>>(input, output);
+                return stream_columns<32, 262144, 4, 4><<<n / 128, 128>>>(input, output);
             if (ARG_COLUMNS_128 == 2 && layout.length == 128 && layout.inner == 128 && address % 16 == 0)
-                return radix_columns<128, 128, 2, 4><<<n / 64, 128>>>(input, output);
+                return stream_columns<128, 128, 2, 8><<<n / 64, 256>>>(input, output);
             if (ARG_COLUMNS_256 == 2 && layout.length == 256 && layout.inner == 65536 && address % 16 == 0)
-                return radix_columns<256, 65536, 4, 8><<<n / 128, 256>>>(input, output);
+                return stream_columns<256, 65536, 4, 8><<<n / 128, 256>>>(input, output);
             if (layout.inner == 1 && address % 16 == 0) {
                 if (layout.length == 64)
-                    return radix_rows<64, 8><<<(n + 15) / 16, Threads>>>(input, output, n);
+                    return tiled_rows<64, 4><<<(n + 31) / 32, Threads>>>(input, output, n);
                 if (ARG_LONG_WARPS == 4 && layout.length == 1024)
-                    return radix_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
+                    return tiled_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
             }
         }
         if (layout.length == 64 && layout.inner == 1)
