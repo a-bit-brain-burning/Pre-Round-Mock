@@ -188,6 +188,16 @@ def check_reductions(functions, runs, records):
             data[length - 1, 3::4] = 3 if operation == "argmax" else -3
             expected = getattr(torch, operation)(data, dim=0).int()
             check_indices(operation, f"tiled-{length}", functions, data, 0, expected, 0, records)
+            direction = 1 if operation == "argmax" else -1
+            x = torch.tensor(float(direction), device="cuda")
+            y = torch.nextafter(x, 2 * x)
+            z = torch.nextafter(y, 2 * x)
+            data.fill_(direction)
+            data[[0, length - 1], ::2] = y
+            data[[3, length - 2], ::2] = z
+            data[length - 1, 1::2] = z
+            expected = getattr(torch, operation)(data, dim=0).int()
+            check_indices(operation, f"neighbor-floats-{length}", functions, data, 0, expected, 0, records)
         for offset in (0, 1):
             data = torch.empty(32 * 262144 + offset, device="cuda")[offset:].view(32, 262144)
             data.zero_()

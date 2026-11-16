@@ -371,6 +371,93 @@ __global__ void bulk_rows64(const float* __restrict__ input, int* __restrict__ o
     if (lane == 0) output[int(blockIdx.x) * Rows + row] = best.index;
 }
 
+// 极值所在区间只有一个下标时可直接返回；同一区间有多个数值时比较完整 FP32。
+template<int Length, int Stride>
+__device__ __forceinline__ int refine_range(const float* input, unsigned early, unsigned late) {
+    constexpr unsigned Mask = Length - 1;
+    const int first = Mask - (early & Mask), last = late & Mask;
+    if (first == last) return first;
+    Candidate best{input[first * Stride], first};
+    for (int i = first + 1; i <= last; ++i) {
+        const float v = input[i * Stride];
+        if (improves(v, best.value)) best.index = i;
+        best.value = extreme(best.value, v);
+    }
+    return best.index;
+}
+
+template<int Length, int Inner, int V, int Parts>
+__global__ void radix_columns(const float* __restrict__ input, int* __restrict__ output) {
+    constexpr unsigned Mask = Length - 1;
+    static_assert((Length & Mask) == 0 && Inner % (32 * V) == 0);
+    __shared__ unsigned earliest[V][Parts][32], latest[V][Parts][32];
+    const int lane = threadIdx.x % 32, part = threadIdx.x / 32;
+    const int col = (int(blockIdx.x) * 32 + lane) * V;
+    const int base = col / Inner * Length * Inner + col % Inner;
+    unsigned a[V]{}, b[V]{};
+    #pragma unroll 4
+    for (int r = part; r < Length; r += Parts) {
+        float values[V];
+        read_columns(input + base + r * Inner, values);
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            const unsigned bin = rank_value(values[j]) & ~Mask;
+            a[j] = max(a[j], bin | (Mask - r));
+            b[j] = max(b[j], bin | unsigned(r));
+        }
+    }
+    #pragma unroll
+    for (int j = 0; j < V; ++j) {
+        earliest[j][part][lane] = a[j];
+        latest[j][part][lane] = b[j];
+    }
+    __syncthreads();
+    if (part == 0) {
+        #pragma unroll
+        for (int j = 0; j < V; ++j) {
+            #pragma unroll
+            for (int p = 1; p < Parts; ++p) {
+                a[j] = max(a[j], earliest[j][p][lane]);
+                b[j] = max(b[j], latest[j][p][lane]);
+            }
+            output[col + j] = refine_range<Length, Inner>(input + base + j, a[j], b[j]);
+        }
+    }
+}
+
+template<int Length, int Width>
+__global__ void radix_rows(const float* __restrict__ input, int* __restrict__ output, int rows) {
+    constexpr unsigned Mask = Length - 1;
+    const int row = (int(blockIdx.x) * Threads + int(threadIdx.x)) / Width;
+    if (row >= rows) return;
+    const int lane = threadIdx.x % Width;
+    const float* base = input + row * Length;
+    unsigned early = 0, late = 0;
+    #pragma unroll
+    for (int r = 4 * lane; r < Length; r += Width * 4) {
+        float v[4];
+        read_columns(base + r, v);
+        #pragma unroll
+        for (int j = 0; j < 4; ++j) {
+            const unsigned bin = rank_value(v[j]) & ~Mask;
+            early = max(early, bin | (Mask - r - j));
+            late = max(late, bin | unsigned(r + j));
+        }
+    }
+    const unsigned mask = (0xffffffffu >> (32 - Width)) << ((threadIdx.x % 32) & ~(Width - 1));
+#if __CUDA_ARCH__ >= 800
+    early = __reduce_max_sync(mask, early);
+    late = __reduce_max_sync(mask, late);
+#else
+    #pragma unroll
+    for (int s = Width / 2; s; s /= 2) {
+        early = max(early, __shfl_xor_sync(mask, early, s, Width));
+        late = max(late, __shfl_xor_sync(mask, late, s, Width));
+    }
+#endif
+    if (lane == 0) output[row] = refine_range<Length, 1>(base, early, late);
+}
+
 __device__ Candidate warp_reduce(Candidate best) {
 #if __CUDA_ARCH__ >= 800
     const unsigned rank = rank_value(best.value);
@@ -614,20 +701,18 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
             const int n = int(outputs);
             const size_t address = reinterpret_cast<size_t>(input);
             if (layout.length == 128 && layout.inner == 256)
-                return warp_columns<128, 256, 1, 8><<<n / 32, Threads>>>(input, output);
+                return radix_columns<128, 256, 1, 8><<<n / 32, 256>>>(input, output);
             if (layout.length == 32 && layout.inner == 262144 && address % 16 == 0)
-                return warp_columns<32, 262144, 4, 8><<<n / 128, Threads>>>(input, output);
+                return radix_columns<32, 262144, 4, 4><<<n / 128, 128>>>(input, output);
             if (ARG_COLUMNS_128 == 2 && layout.length == 128 && layout.inner == 128 && address % 16 == 0)
-                return bulk_columns128<<<n / 128, 256>>>(input, output);
+                return radix_columns<128, 128, 2, 4><<<n / 64, 128>>>(input, output);
             if (ARG_COLUMNS_256 == 2 && layout.length == 256 && layout.inner == 65536 && address % 16 == 0)
-                return warp_columns<256, 65536, 4, 8><<<n / 128, Threads>>>(input, output);
+                return radix_columns<256, 65536, 4, 8><<<n / 128, 256>>>(input, output);
             if (layout.inner == 1 && address % 16 == 0) {
-                if (layout.length == 64 && n % 64 == 0)
-                    return bulk_rows64<<<n / 64, 256>>>(input, output);
                 if (layout.length == 64)
-                    return tiled_rows<64, 2><<<(n + 63) / 64, Threads>>>(input, output, n);
+                    return radix_rows<64, 8><<<(n + 15) / 16, Threads>>>(input, output, n);
                 if (ARG_LONG_WARPS == 4 && layout.length == 1024)
-                    return tiled_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
+                    return radix_rows<1024, 32><<<(n + 3) / 4, Threads>>>(input, output, n);
             }
         }
         if (layout.length == 64 && layout.inner == 1)
