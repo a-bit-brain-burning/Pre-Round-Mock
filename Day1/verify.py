@@ -177,6 +177,20 @@ def check_reductions(functions, runs, records):
         data[:, [1, 4, 127], 1::2] = 1 if operation == "argmax" else -1
         expected = getattr(torch, operation)(data, dim=1).int()
         check_indices(operation, "column-groups", functions, data, 1, expected, 0, records)
+        for offset in (0, 1):
+            data = torch.empty(32 * 262144 + offset, device="cuda")[offset:].view(32, 262144)
+            data.zero_()
+            data[[2, 8, 31], 0::4] = float("nan")
+            data[[3, 17], 1::4] = 1 if operation == "argmax" else -1
+            data[31, 2::4] = 2 if operation == "argmax" else -2
+            expected = getattr(torch, operation)(data, dim=0).int()
+            check_indices(operation, f"columns32-offset-{offset}", functions, data, 0, expected, 0, records)
+        data = torch.randn((8, 8), device="cuda")
+        sizes = torch.tensor(data.shape, dtype=torch.int32, device="cpu", pin_memory=True)
+        expected = getattr(torch, operation)(data, dim=0).int()
+        out = torch.empty_like(expected)
+        record_case(operation, "pinned-shape", functions,
+                    (data.data_ptr(), 0, out.data_ptr(), sizes.data_ptr(), 2), out, expected, 0, 0, records)
 
 
 def main():

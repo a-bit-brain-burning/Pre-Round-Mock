@@ -34,7 +34,7 @@ __host__ __device__ Layout get_layout(const int* shape, int dim, int ndim) {
 }
 
 __device__ bool improves(float next, float previous) {
-    return (FindMax ? next > previous : next < previous) || (isnan(next) && !isnan(previous));
+    return (FindMax ? !(next <= previous) : !(next >= previous)) && !isnan(previous);
 }
 
 __device__ Candidate choose(Candidate a, Candidate b) {
@@ -42,21 +42,42 @@ __device__ Candidate choose(Candidate a, Candidate b) {
     return improves(b.value, a.value) || (tied && b.index < a.index) ? b : a;
 }
 
+// 相同的零和 NaN 共用顺序值，最早下标在归约时单独比较。
+__device__ unsigned rank_value(float value) {
+    unsigned bits = __float_as_uint(FindMax ? value : -value);
+    const unsigned magnitude = bits & 0x7fffffffu;
+    if (magnitude == 0) bits = 0;
+    if (magnitude > 0x7f800000u) return 0xffffffffu;
+    return bits & 0x80000000u ? ~bits : (bits ^ 0x80000000u);
+}
+
 __device__ Candidate warp_reduce(Candidate best) {
+#if __CUDA_ARCH__ >= 800
+    const unsigned rank = rank_value(best.value);
+    const unsigned winner = __reduce_max_sync(0xffffffffu, rank);
+    const int first = __reduce_min_sync(0xffffffffu, rank == winner ? best.index : 0x7fffffff);
+    const unsigned bits = winner & 0x80000000u ? winner ^ 0x80000000u : ~winner;
+    const float value = __uint_as_float(bits);
+    return {FindMax ? value : -value, first};
+#else
     for (int step = 16; step > 0; step /= 2) {
         const float value = __shfl_down_sync(0xffffffff, best.value, step);
         const int index = __shfl_down_sync(0xffffffff, best.index, step);
         best = choose(best, {value, index});
     }
     return best;
+#endif
 }
 
-__device__ Candidate read_row(const float* row, int length, int start, int stride) {
+template<int Stride>
+__device__ Candidate read_row(const float* row, int length, int start) {
     const float infinity = __int_as_float(0x7f800000);
     Candidate best{FindMax ? -infinity : infinity, length};
     if (length == 1024 && reinterpret_cast<size_t>(row) % alignof(float4) == 0) {
         const float4* vectors = reinterpret_cast<const float4*>(row);
-        for (int i = start; i < 256; i += stride) {
+        #pragma unroll
+        for (int group = 0; group < 256 / Stride; ++group) {
+            const int i = start + group * Stride;
             const float4 v = vectors[i];
             if (i == start || improves(v.x, best.value)) best = {v.x, 4 * i};
             if (improves(v.y, best.value)) best = {v.y, 4 * i + 1};
@@ -65,18 +86,9 @@ __device__ Candidate read_row(const float* row, int length, int start, int strid
         }
         return warp_reduce(best);
     }
-    for (int r = start; r < length; r += stride)
+    for (int r = start; r < length; r += Stride)
         best = choose(best, {row[r], r});
     return warp_reduce(best);
-}
-
-// 将局部极值转换为可由 warp 整数指令比较的顺序，同值保留首次下标。
-__device__ unsigned rank_value(float value) {
-    unsigned bits = __float_as_uint(FindMax ? value : -value);
-    const unsigned magnitude = bits & 0x7fffffffu;
-    if (magnitude == 0) bits = 0;
-    if (magnitude > 0x7f800000u) return 0xffffffffu;
-    return bits & 0x80000000u ? ~bits : (bits ^ 0x80000000u);
 }
 
 __device__ void rows64(const float4* input, int* output, size_t rows) {
@@ -105,17 +117,15 @@ __device__ void rows64(const float4* input, int* output, size_t rows) {
     }
 }
 
-__global__ void contiguous(const float* input, int* output, const int* shape, int dim, Layout layout) {
-    if (shape) layout = get_layout(shape, dim, dim + 1);
-    const size_t rows = layout.rows;
-    const int length = layout.length, lane = threadIdx.x % 32, warp = threadIdx.x / 32;
+__device__ void reduce_rows(const float* input, int* output, size_t rows, int length) {
+    const int lane = threadIdx.x % 32, warp = threadIdx.x / 32;
     if (length == 64 && reinterpret_cast<size_t>(input) % alignof(float4) == 0) {
         rows64(reinterpret_cast<const float4*>(input), output, rows);
         return;
     }
     if (ARG_LONG_WARPS == 1 || length <= 64) {
         for (size_t row = size_t(blockIdx.x) * Warps + warp; row < rows; row += gridDim.x * Warps) {
-            Candidate best = read_row(input + row * length, length, lane, 32);
+            Candidate best = read_row<32>(input + row * length, length, lane);
             if (lane == 0) output[row] = best.index;
         }
         return;
@@ -123,7 +133,7 @@ __global__ void contiguous(const float* input, int* output, const int* shape, in
 #if ARG_LONG_WARPS == 4
     __shared__ Candidate partial[Warps];
     for (size_t row = blockIdx.x; row < rows; row += gridDim.x) {
-        Candidate best = read_row(input + row * length, length, threadIdx.x, Threads);
+        Candidate best = read_row<Threads>(input + row * length, length, threadIdx.x);
         if (lane == 0) partial[warp] = best;
         __syncthreads();
         if (warp == 0) {
@@ -187,6 +197,28 @@ __device__ void short_column_grid(const float* input, int* output, size_t rows) 
     }
 }
 
+__device__ void columns32x4(const float4* input, int* output, size_t rows) {
+    constexpr int Stride = 262144 / 4;
+    for (size_t col = size_t(blockIdx.x) * Threads + threadIdx.x; col < rows * Stride;
+         col += gridDim.x * Threads) {
+        const float4* base = input + col / Stride * 32 * Stride + col % Stride;
+        float4 best = base[0];
+        int4 indices = make_int4(0, 0, 0, 0);
+        #pragma unroll
+        for (int r = 1; r < 32; ++r) {
+            const float4 v = base[r * Stride];
+            if (improves(v.x, best.x)) { best.x = v.x; indices.x = r; }
+            if (improves(v.y, best.y)) { best.y = v.y; indices.y = r; }
+            if (improves(v.z, best.z)) { best.z = v.z; indices.z = r; }
+            if (improves(v.w, best.w)) { best.w = v.w; indices.w = r; }
+        }
+        output[4 * col] = indices.x;
+        output[4 * col + 1] = indices.y;
+        output[4 * col + 2] = indices.z;
+        output[4 * col + 3] = indices.w;
+    }
+}
+
 template<int Length, int Inner>
 __device__ void fixed_columns(const float* input, int* output, size_t rows) {
     for (size_t col = size_t(blockIdx.x) * Threads + threadIdx.x; col < rows * Inner;
@@ -202,8 +234,7 @@ __device__ void fixed_columns(const float* input, int* output, size_t rows) {
     }
 }
 
-__global__ void strided(const float* input, int* output, const int* shape, int dim, int ndim, Layout layout) {
-    if (shape) layout = get_layout(shape, dim, ndim);
+__device__ void reduce_columns(const float* input, int* output, Layout layout) {
     const size_t rows = layout.rows, inner = layout.inner;
     const int length = layout.length;
     const bool pairs = (ARG_COLUMNS_128 == 2 && length == 128 && inner == 128)
@@ -214,12 +245,36 @@ __global__ void strided(const float* input, int* output, const int* shape, int d
         fixed_columns<128, 128>(input, output, rows);
     else if (length == 256 && inner == 65536)
         fixed_columns<256, 65536>(input, output, rows);
+    else if (length == 32 && inner == 262144 && reinterpret_cast<size_t>(input) % alignof(float4) == 0)
+        columns32x4(reinterpret_cast<const float4*>(input), output, rows);
     else if (length == 32 && inner == 262144)
         fixed_columns<32, 262144>(input, output, rows);
     else if (length == 128 && inner == 256)
         short_column_grid(input, output, rows);
     else
         scan_columns(input, output, rows, length, inner);
+}
+
+template<int Length, int Inner>
+__global__ void fixed_layout(const float* input, int* output, size_t rows) {
+    if (Inner == 1)
+        reduce_rows(input, output, rows, Length);
+    else
+        reduce_columns(input, output, {rows, Inner, Length});
+}
+
+__global__ void general_layout(const float* input, int* output, const int* shape,
+                               int dim, int ndim, Layout layout) {
+    if (shape) layout = get_layout(shape, dim, ndim);
+    if (layout.inner == 1)
+        reduce_rows(input, output, layout.rows, layout.length);
+    else
+        reduce_columns(input, output, layout);
+}
+
+int grid_for(size_t work, int per_block) {
+    const size_t blocks = 1 + (work - 1) / per_block;
+    return blocks < 2048 ? static_cast<int>(blocks) : 2048;
 }
 }
 
@@ -233,9 +288,20 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
         layout = get_layout(shape, dim, ndim);
         if (layout.rows == 0 || layout.inner == 0 || layout.length == 0) return;
         shape = nullptr;
+        const size_t rows = layout.rows;
+        const size_t outputs = rows * layout.inner;
+        if (layout.length == 64 && layout.inner == 1)
+            return fixed_layout<64, 1><<<grid_for(rows, Threads / 16), Threads>>>(input, output, rows);
+        if (layout.length == 1024 && layout.inner == 1)
+            return fixed_layout<1024, 1><<<grid_for(rows, Warps / ARG_LONG_WARPS), Threads>>>(input, output, rows);
+        if (layout.length == 128 && layout.inner == 256)
+            return fixed_layout<128, 256><<<grid_for(outputs, Warps * 8), Threads>>>(input, output, rows);
+        if (layout.length == 32 && layout.inner == 262144)
+            return fixed_layout<32, 262144><<<grid_for(outputs, Threads * 4), Threads>>>(input, output, rows);
+        if (layout.length == 128 && layout.inner == 128)
+            return fixed_layout<128, 128><<<grid_for(outputs, Threads * ARG_COLUMNS_128), Threads>>>(input, output, rows);
+        if (layout.length == 256 && layout.inner == 65536)
+            return fixed_layout<256, 65536><<<grid_for(outputs, Threads * ARG_COLUMNS_256), Threads>>>(input, output, rows);
     }
-    if (dim == ndim - 1)
-        contiguous<<<512, Threads>>>(input, output, shape, dim, layout);
-    else
-        strided<<<512, Threads>>>(input, output, shape, dim, ndim, layout);
+    general_layout<<<512, Threads>>>(input, output, shape, dim, ndim, layout);
 }

@@ -10,7 +10,7 @@ import torch
 from verify import BUILD, HERE, SHAPES, SOURCES, build
 
 
-def compare(nvcc, baseline):
+def compare(nvcc, baseline, shape_device):
     root = HERE.parent
     commit = subprocess.check_output(["git", "rev-parse", "--verify", baseline + "^{commit}"],
                                      cwd=root, text=True).strip()
@@ -19,7 +19,7 @@ def compare(nvcc, baseline):
     report = {"gpu": torch.cuda.get_device_name(), "sm": arch, "torch": str(torch.__version__),
               "baseline": commit, "seed": 1116, "batch": 8, "warmup": 16, "rounds": 16,
               "nvcc": subprocess.check_output([nvcc, "--version"], text=True).strip(),
-              "sha256": {}, "cases": []}
+              "shape_device": shape_device, "sha256": {}, "cases": []}
     torch.manual_seed(report["seed"])
     BUILD.mkdir(parents=True, exist_ok=True)
     for op in operations:
@@ -30,7 +30,7 @@ def compare(nvcc, baseline):
                     "current": build(nvcc, {arch, "90"}, (op, "current", []))[2]}
         for shape, dim in SHAPES:
             data = torch.randn(shape, device="cuda")
-            sizes = torch.tensor(shape, device="cuda", dtype=torch.int32)
+            sizes = torch.tensor(shape, device=shape_device, dtype=torch.int32)
             expected = getattr(torch, op)(data, dim=dim).int()
             out = torch.empty_like(expected)
             args = (data.data_ptr(), dim, out.data_ptr(), sizes.data_ptr(), len(shape))
@@ -62,9 +62,10 @@ def compare(nvcc, baseline):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--nvcc", default="nvcc")
-    parser.add_argument("--baseline", default="90d676f334853e960df410431bb8eb24656ed24f")
+    parser.add_argument("--baseline", default="5b2cf2868922b9e98ea6e327c3bdd9f4ffd5775f")
+    parser.add_argument("--shape-device", choices=("cuda", "cpu"), default="cpu")
     args = parser.parse_args()
-    report = compare(args.nvcc, args.baseline)
+    report = compare(args.nvcc, args.baseline, args.shape_device)
     now = datetime.now(timezone.utc)
     report["utc"] = now.isoformat()
     path = HERE / f"results-1116-reductions-{now:%Y%m%d-%H%M%S}.json"
