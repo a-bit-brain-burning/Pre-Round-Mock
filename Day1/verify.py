@@ -172,6 +172,9 @@ def check_reductions(functions, runs, records):
             data[6, length - 2] = value
             expected = getattr(torch, operation)(data, dim=1).int()
             check_indices(operation, f"vector-special-{length}", functions, data, 1, expected, 0, records)
+            data = data.repeat(10, 1)[:64].contiguous()
+            expected = getattr(torch, operation)(data, dim=1).int()
+            check_indices(operation, f"full-tile-{length}", functions, data, 1, expected, 0, records)
         data = torch.zeros((3, 128, 256), device="cuda")
         data[:, [3, 4], ::2] = float("nan")
         data[:, [1, 4, 127], 1::2] = 1 if operation == "argmax" else -1

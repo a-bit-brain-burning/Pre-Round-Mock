@@ -273,6 +273,104 @@ __global__ void packed_rows(const float* __restrict__ input, int* __restrict__ o
     }
 }
 
+__device__ __forceinline__ void init_bulk(unsigned long long* barrier) {
+#if __CUDA_ARCH__ >= 900
+    const unsigned addr = __cvta_generic_to_shared(barrier);
+    asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(addr) : "memory");
+    asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+#endif
+}
+
+template<int Count>
+__device__ __forceinline__ void copy_bulk(float* dest, const float* src, unsigned long long* barrier) {
+#if __CUDA_ARCH__ >= 900
+    if (threadIdx.x == 0) {
+        const unsigned address = __cvta_generic_to_shared(dest), bar = __cvta_generic_to_shared(barrier);
+        asm volatile("mbarrier.arrive.expect_tx.release.cta.shared::cta.b64 _, [%0], %1;"
+                     :: "r"(bar), "r"(Count * 4) : "memory");
+        asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
+                     :: "r"(address), "l"(src), "r"(Count * 4), "r"(bar) : "memory");
+    }
+#else
+    for (int i = threadIdx.x; i < Count; i += blockDim.x) dest[i] = src[i];
+#endif
+}
+
+__device__ __forceinline__ void wait_bulk(unsigned long long* barrier, unsigned phase) {
+#if __CUDA_ARCH__ >= 900
+    const unsigned bar = __cvta_generic_to_shared(barrier);
+    unsigned done;
+    do {
+        asm volatile("{ .reg .pred p; mbarrier.try_wait.parity.shared::cta.b64 p, [%1], %2; "
+                     "selp.u32 %0, 1, 0, p; }" : "=r"(done) : "r"(bar), "r"(phase) : "memory");
+    } while (!done);
+#else
+    __syncthreads();
+#endif
+}
+
+__global__ void bulk_columns128(const float* __restrict__ input, int* __restrict__ output) {
+    constexpr int Inner = 128, Rows = 32, Count = Inner * Rows;
+    __shared__ __align__(128) float panels[2][Count];
+    __shared__ unsigned long long barriers[2];
+    __shared__ Candidate partial[256];
+    const int tid = threadIdx.x, col = tid % Inner, part = tid / Inner;
+    const float* base = input + int(blockIdx.x) * 128 * Inner;
+    if (tid == 0) { init_bulk(barriers); init_bulk(barriers + 1); }
+    __syncthreads();
+    copy_bulk<Count>(panels[0], base, barriers);
+    copy_bulk<Count>(panels[1], base + Count, barriers + 1);
+    Candidate best{0.0f, -1};
+    #pragma unroll
+    for (int panel = 0; panel < 4; ++panel) {
+        const int slot = panel % 2;
+        wait_bulk(barriers + slot, panel / 2);
+        #pragma unroll
+        for (int r = 0; r < Rows / 2; ++r) {
+            const int row = part * (Rows / 2) + r;
+            const float v = panels[slot][row * Inner + col];
+            if (best.index < 0 || improves(v, best.value)) best.index = panel * Rows + row;
+            best.value = panel == 0 && r == 0 ? v : extreme(best.value, v);
+        }
+        __syncthreads();
+        if (panel < 2) copy_bulk<Count>(panels[slot], base + (panel + 2) * Count, barriers + slot);
+    }
+    partial[tid] = best;
+    __syncthreads();
+    if (part == 0) output[int(blockIdx.x) * Inner + col] = choose(best, partial[Inner + col]).index;
+}
+
+__global__ void bulk_rows64(const float* __restrict__ input, int* __restrict__ output) {
+    constexpr int Width = 4, Rows = 64;
+    __shared__ __align__(128) float tile[Rows * 64];
+    __shared__ unsigned long long barrier;
+    const int tid = threadIdx.x, row = tid / Width, lane = tid % Width;
+    if (tid == 0) init_bulk(&barrier);
+    __syncthreads();
+    copy_bulk<Rows * 64>(tile, input + int(blockIdx.x) * Rows * 64, &barrier);
+    wait_bulk(&barrier, 0);
+    Candidate best{0.0f, 64};
+    #pragma unroll
+    for (int g = 0; g < 4; ++g) {
+        const int p = (g * Width + lane + (row % 4) * Width) & 15;
+        const float4 v = reinterpret_cast<const float4*>(tile + row * 64)[p];
+        const float chunk = extreme(extreme(v.x, v.y), extreme(v.z, v.w));
+        int k = 3;
+        if (v.z == chunk || isnan(v.z)) k = 2;
+        if (v.y == chunk || isnan(v.y)) k = 1;
+        if (v.x == chunk || isnan(v.x)) k = 0;
+        const Candidate next{chunk, p * 4 + k};
+        best = g ? choose(best, next) : next;
+    }
+    #pragma unroll
+    for (int s = 2; s; s /= 2) {
+        const Candidate other{__shfl_down_sync(0xffffffffu, best.value, s, Width),
+                              __shfl_down_sync(0xffffffffu, best.index, s, Width)};
+        best = choose(best, other);
+    }
+    if (lane == 0) output[int(blockIdx.x) * Rows + row] = best.index;
+}
+
 __device__ Candidate warp_reduce(Candidate best) {
 #if __CUDA_ARCH__ >= 800
     const unsigned rank = rank_value(best.value);
@@ -520,10 +618,12 @@ extern "C" void solution(const float* input, int dim, int* output, const int* sh
             if (layout.length == 32 && layout.inner == 262144 && address % 8 == 0)
                 return warp_columns<32, 262144, 2, 8><<<n / 64, Threads>>>(input, output);
             if (ARG_COLUMNS_128 == 2 && layout.length == 128 && layout.inner == 128 && address % 16 == 0)
-                return warp_columns<128, 128, 4, 8><<<n / 128, Threads>>>(input, output);
+                return bulk_columns128<<<n / 128, 256>>>(input, output);
             if (ARG_COLUMNS_256 == 2 && layout.length == 256 && layout.inner == 65536 && address % 8 == 0)
                 return warp_columns<256, 65536, 2, 8><<<n / 64, Threads>>>(input, output);
             if (layout.inner == 1 && address % 16 == 0) {
+                if (layout.length == 64 && n % 64 == 0)
+                    return bulk_rows64<<<n / 64, 256>>>(input, output);
                 if (layout.length == 64)
                     return tiled_rows<64, 4><<<(n + 31) / 32, Threads>>>(input, output, n);
                 if (ARG_LONG_WARPS == 4 && layout.length == 1024)
