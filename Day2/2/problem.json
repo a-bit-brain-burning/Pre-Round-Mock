@@ -1,0 +1,49 @@
+{
+  "title": "Batch Normalization",
+  "slug": "batch-norm",
+  "parameters": [
+    {
+      "name": "X",
+      "type": "float",
+      "const": "true",
+      "pointer": "true"
+    },
+    {
+      "name": "Y",
+      "type": "float",
+      "const": "false",
+      "pointer": "true"
+    },
+    {
+      "name": "B",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "F",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "D1",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "D2",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    }
+  ],
+  "contest": {
+    "id": "practice-2026-11-17",
+    "title": "practice-2026-11-17",
+    "label": "B",
+    "basePoints": 1000,
+    "baselineTimeMs": 0.387001
+  }
+}

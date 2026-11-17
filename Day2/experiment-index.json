@@ -1,0 +1,3469 @@
+{
+  "contest": "practice-2026-11-17",
+  "gpu": "H20",
+  "records": [
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v15，对照 v12 和 v13，第 4 组沿高度每块连续处理 14 个输出，标记相邻两块共同读取的三个输入平面以供 L2 重用。第 1、2、3、5 组采用 v13 的分工。",
+      "sha256": "0218389dc6e78f77b730fc055e66558b000533ecf2ba48a73996ba04d262c3ff",
+      "source": "1/pool-cache.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v14，对照 v11、v13，第 3 组每块读取四条输出宽度、第 5 组读取两条，异步搬运三个输入平面，由线程用 float4 合并九行后再计算深度方向的三项平均值。",
+      "sha256": "02d4b4ebee363056bfce64e05edbf29a34160bcc06ac18652aa6bb4be7a415f4",
+      "source": "1/pool-plane.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v19，对照 v10，第 4 组将每个线程块的高度由 4 改为 14、宽度由 14 改为 7，一次保存 14 个高度窗口的行和，再合并相邻宽度。",
+      "sha256": "0433c67a95eb255cbbcf8884b36e0e08246f0a80df8633fa8eecbf1d14127adf",
+      "source": "1/pool-height.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v12，对照 v9，第 4 组将 392 个输出深度均分为 7 组，每个 warp 计算连续 56 个结果并由两个线程提供相邻输入，沿高度处理 14 个输出；第 3、5 组按输入行轮换连续读取的起点。",
+      "sha256": "04c3adfdaabf7b775bf72260bffce5e24aeebb9767fc455a413ba7d434e5e65c",
+      "source": "1/pool-depth.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v18，对照 v17，仅调整第 1、2 组，按输入高度逐平面计算宽度和深度窗口，再沿高度归约；每次调用独立分配中间数组，验证两次 kernel 调用的总耗时。",
+      "sha256": "0b5bd3cd44e5d87040f3a724aa81a22f97937b6054947ee2acd42a51f62dd0fc",
+      "source": "1/pool-small.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v24，对照 v22，第 4 组让八个 warp 同时读取八个相邻宽度窗口，每个窗口连续计算 28 个高度；第 5 组将现有完整深度行 kernel 的两个线程块组成 cluster。",
+      "sha256": "11633fd71486b439b243776e4dca61add7ae8587cbc9af4d77764fd92a098abe",
+      "source": "1/pool-columns.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v37，对照 v32、v35，192³ 按 4×4、224³ 按 3×3 个高宽窗口读取完整深度行，在共享内存依次合并高度、宽度和深度，检验相邻窗口复用的效果。",
+      "sha256": "121cec4b8af82e47cfa58a930eb749b397b3d98a8a1cc6d2bae8b85ca8bc1410",
+      "source": "1/pool-small-planes.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v27，对照 v22、v26，第 3、5 组由固定数量的线程块轮流处理完整输出行，交替使用两块共享内存并提前读取下一行；第 4 组每次计算 28 个高度。",
+      "sha256": "122ffdc3bb529d85c7a8726001042a12374a1230f142d44f772bf9fb9055b41d",
+      "source": "1/pool-persistent.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v22，按 v3、v12、v13、v17 的分组实测组合：第 2 组直接交换七项窗口的两端，第 3 组逐高度连续读三条输出行，第 4 组同一线程块共用相邻宽度，第 5 组一块处理一条完整深度行。",
+      "sha256": "1ee115a069b4258a199728fa856641fea9d0d9521735c7fef619d18e1e6a5c32",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v31，诊断 Run，对照 v22。在单独生成的 784³、1024³ 输入上，用 CUDA event 各测三次连续读取、同量顺序读写及窗口分块，区分显存吞吐与归约开销；样例仍完整计算。",
+      "sha256": "1f0fd718ede8054f75a5a8b328dec1102f0fbf9043d96db0862f0a0678b7018a",
+      "source": "1/pool-measure.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "POOL 784-read 507.360 507.424 507.776",
+        "POOL 784-read-write 585.056 585.152 586.080",
+        "POOL 784-W1-H7 708.896 709.472 710.496",
+        "POOL 784-W1-H14 705.888 708.224 709.184",
+        "POOL 784-W1-H28 712.064 712.736 713.600",
+        "POOL 784-W2-H4 643.776 644.096 644.576",
+        "POOL 784-W2-H7 660.288 660.352 660.480",
+        "POOL 784-W2-H8 660.352 660.512 660.672",
+        "POOL 784-W2-H12 648.992 649.248 649.312",
+        "POOL 784-W2-H14 649.920 650.208 651.392",
+        "POOL 784-W2-H16 651.040 652.800 652.864",
+        "POOL 784-W2-H21 649.440 650.048 652.736",
+        "POOL 784-W2-H28 657.472 659.616 660.608",
+        "POOL 784-W3-H7 676.064 676.512 678.176",
+        "POOL 784-W3-H14 695.296 696.896 697.568",
+        "POOL 784-W4-H7 670.656 671.520 672.256",
+        "POOL 784-W4-H14 650.944 652.288 652.768",
+        "POOL 1024-read 1121.664 1122.560 1124.032",
+        "POOL 1024-read-write 1214.464 1214.944 1215.776",
+        "POOL 1024-current 1211.520 1212.160 1213.632",
+        "POOL 1024-B64-R1-L0 1215.648 1216.192 1217.152",
+        "POOL 1024-B128-R1-L0 1212.928 1213.152 1214.848",
+        "POOL 1024-B256-R1-L0 1210.848 1211.776 1212.192",
+        "POOL 1024-B128-R2-L0 1217.632 1217.696 1219.168",
+        "POOL 1024-B256-R2-L0 1214.720 1214.976 1215.456",
+        "POOL 1024-B512-R2-L0 1211.776 1211.968 1213.280",
+        "POOL 1024-B128-R4-L0 1450.336 1450.464 1454.592",
+        "POOL 1024-B256-R4-L0 1216.768 1216.768 1217.056",
+        "POOL 1024-B512-R4-L0 1213.344 1214.528 1216.544",
+        "POOL 1024-B256-R1-L1 1229.536 1231.744 1232.480",
+        "POOL 1024-B256-R2-L1 1232.128 1234.336 1234.400",
+        "POOL 1024-B256-R4-L1 1239.488 1240.192 1242.112"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v39 诊断 Run，对照 v38，五种尺寸用相同池化 kernel 比较直接启动与每次更新输入输出地址的 CUDA Graph，独立测量 CPU 提交、同步完成、CUDA event 和连续八次调用。",
+      "sha256": "249b15a8d8c33aae81f605c387194e69431eca9d8432b7a293e0d45df741a4ea",
+      "source": "1/pool-e2e-study.cu",
+      "status": "COMPILE_ERROR"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v16，对照 v12、v13，第 4 组将一个 warp 分成四组，每八个线程读取相邻宽度的四行，在寄存器中交换两端，连续更新 14 个高度；第 3、5 组合并八条输出行。",
+      "sha256": "298bd5e9765a692def4f3ae522e9b63ae6720763f10a4a69b09019ce25c263db",
+      "source": "1/pool-lanes.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v2，对照 v1 的 421.8746 分。第 1、4 组用 float4 连续读取深度，warp 交换窗口边缘，一次得到两个相邻输出；第 3、5 组同样用 float4 纵向累加，每个线程块处理 128 个输出深度。第 2 组沿用 v1。",
+      "sha256": "385af9926b9a84c6b7930f24f323791ece1e4d5fe3a6a1f649b1ba09666d338d",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v11，对照 v9，第 3、5 组按输入高度分别搬运连续的整段宽度与深度，在共享内存计算不重叠窗口；第 4 组每个 warp 处理 4 个宽度和 14 个高度位置。",
+      "sha256": "38d9f8a78aae0bbdb862aae9ba7a5315307d7ee2daa875017c9e4b03e4740012",
+      "source": "1/pool-linear.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v5，对照 v3 的 807.4068 分和 v4 分组时间。第 3、5 组每块合并四条完整输出行，连续 float4 读取经 L2；第 4 组每 warp 沿宽度连续计算 24 个窗口复用边缘；第 1、2 组缩小每 warp 工作面以增加并行度。",
+      "sha256": "3f286a56b663bf9bd35824bf31b8e42cf63d4013c6f278a57526fb440896aff9",
+      "source": "1/pool-rows.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v26，对照 v22，仅调整第 4 组，每个 warp 固定两个宽度窗口，沿高度连续计算 98 个输出，提前处理越界平面，使用 30 个有效线程提供深度窗口数据。",
+      "sha256": "3f708e7ac0aa0d017f0b983396967cdd4fcf46aa7fab3d20132b1e8b1a9713d5",
+      "source": "1/pool-long.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v38，对照 v32、v35，采用 v36 轮流读取四组数组所得的高宽分块，192³ 选 2×4，224³ 选 2×3，每个 warp 复用相邻窗口，核验正式端到端用时。",
+      "sha256": "447e991fbeaab3b9347f6df41b5c6a856270446999a7ecf1e03aafc7cfd144aa",
+      "source": "1/pool-small-tuned.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v8，对照 v3 与 v4，线程块按连续四个 FP32 协作异步读取三维输入块，边界补零，在共享内存完成深度和宽度归约；第 3、5 组按不重叠窗口读取。",
+      "sha256": "4a69db2b1c9b65aa03bb3f04431b46ee01ccd83fb95a5cb85f2e2cbd3c3d3668",
+      "source": "1/pool-tile.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v21，对照 CUDA v12、v20，使用 Triton 对重叠窗口按二维输入平面分块读取，分别归约宽度和深度，相邻高度复用行和；不重叠窗口向量读取九行后计算三项之和。",
+      "sha256": "4c2461fc525013b928e042a8ef612072acb8945d9e3448df7f58d84942882432",
+      "source": "1/pool-triton.py",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v34，对照 v32，根据连续读写对照单独调整 1024³，读取一次后降低输入缓存优先级，给写出的输出较高缓存优先级，复核正式总耗时。",
+      "sha256": "5654216e7de22bd944a3f4b3f1a017ff0beef02d229e5521de41a8e97ac93379",
+      "source": "1/pool-write.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v3，对照 v2 的 486.5852 分。第 3、5 组每块连续读取完整深度行，合并九行后按三列输出；第 1、4 组以 8×8 输出平面为单位，寄存器复用相邻高度的二行和，沿深度交换窗口边缘，再合并五个宽度位置。",
+      "sha256": "572e11dc7af643cbc9940ed51498038e025c0a17d443eba5cc5a7d52ea898744",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v10，对照 v5、v9，仅修改第 4 组：一个线程块覆盖 4×14×56 个输出，16 个 warp 分别合并两条输入行，共享相邻窗口的行和，沿深度分成 7 个等长区域。",
+      "sha256": "5f63b97c4b172f5f12c6b14a33a742c80e9a5a6cf0ee14965c212c71766e3f0b",
+      "source": "1/pool-brick.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v35，对照 v32，192³ 将输出深度均分为两段 48，192³ 与 224³ 在深度向量归约前统一补零，内部高度、宽度窗口使用连续读取。另三组沿用 v32。",
+      "sha256": "6111fcfc5a5f05729f7d9e617d3acce52cd96fd2014bd94afe72e6046fcf7f78",
+      "source": "1/pool-small-boundary.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v39b 诊断 Run，对照 v38 和 v39，使用 CUDA event 测量五组直接启动、每次更新地址的 CUDA Graph，以及连续八次调用的均摊时间；两组地址核对全部输出。",
+      "sha256": "81c15cb66c64285b59e83a6248167d7584a5267836439894d95570da5cbe1365",
+      "source": "1/pool-launch-study.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "E2E 192 direct event 15.904 batch8 12.224",
+        "E2E 192 graph-update event 14.976 batch8 12.356",
+        "E2E 224 direct event 24.256 batch8 20.900",
+        "E2E 224 graph-update event 23.872 batch8 21.336",
+        "E2E 512 direct event 158.464 batch8 154.392",
+        "E2E 512 graph-update event 156.832 batch8 154.336",
+        "E2E 784 direct event 674.368 batch8 671.264",
+        "E2E 784 graph-update event 664.256 batch8 667.964",
+        "E2E 1024 direct event 1209.440 batch8 1205.188",
+        "E2E 1024 graph-update event 1207.616 batch8 1205.416"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v29，对照 v22、v24，第 1、4 组改用 float2 读取深度，每个有效线程写一个结果，第 4 组同时计算四个宽度窗口；第 5 组使用两个线程块组成的 cluster。",
+      "sha256": "836fcfc8b513b28d99ec458bfdacfe94050490eed27cf4980e217fc4e75345bb",
+      "source": "1/pool-vec-window.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v44 诊断 Run，对照 v38、v40，在 784³ 中保留同一线程块沿物理宽度复用输入的顺序，比较单块 warp 数以及每个 warp 的窗口数量，十九种配置逐元素核验并轮换计时。",
+      "sha256": "a3209eeb911ce2d96dc75d016170022c7d5397583da409cbd9f8cb20b560bef8",
+      "source": "1/pool-warps-study.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "ORDER 784 direct min 647.936 median 656.416 max 670.112",
+        "ORDER 784 2x4b1 min 679.232 median 694.592 max 701.056",
+        "ORDER 784 2x4b2 min 656.480 median 670.112 max 672.064",
+        "ORDER 784 2x4b7 min 671.584 median 682.080 max 700.160",
+        "ORDER 784 2x4b8 min 652.256 median 662.976 max 680.096",
+        "ORDER 784 2x4b14 min 681.504 median 704.800 max 721.312",
+        "ORDER 784 2x4b16 min 667.040 median 685.888 max 704.256",
+        "ORDER 784 2x7b2 min 665.824 median 673.408 max 685.312",
+        "ORDER 784 2x7b4 min 662.016 median 670.080 max 681.568",
+        "ORDER 784 2x7b7 min 664.320 median 680.032 max 693.312",
+        "ORDER 784 2x8b2 min 670.144 median 678.304 max 689.216",
+        "ORDER 784 2x8b4 min 660.736 median 670.784 max 681.632",
+        "ORDER 784 2x8b7 min 678.624 median 692.352 max 703.360",
+        "ORDER 784 2x14b7 min 672.064 median 685.024 max 695.424",
+        "ORDER 784 4x4b4 min 728.384 median 748.416 max 766.944",
+        "ORDER 784 4x4b7 min 777.472 median 802.400 max 826.496",
+        "ORDER 784 4x7b4 min 671.552 median 687.872 max 700.224",
+        "ORDER 784 4x7b7 min 690.368 median 706.560 max 719.520",
+        "ORDER 784 1x7b7 min 757.504 median 787.328 max 809.312"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v4，对照 v3 的 807.4068 分。第 1、2、4 组将高度和宽度滑动窗口都放入寄存器，最后才交换深度元素；第 3、5 组连续读取三个高度平面，在共享内存合并两行输出所用的九个位置。",
+      "sha256": "a608b609d8199fd32af1b17366a1436ad23cc6b21c8787540f03f2058ee94cfa",
+      "source": "1/pool-warp.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v13，对照 v12，第 4 组按相邻 28 个输出宽度连续处理各高度；第 2 组由相邻线程直接交换七元素窗口两端，第 1 组扩大高度复用，第 3、5 组使用流式读写和 256 字节预取。",
+      "sha256": "a6bcae86031c4b6736d25fe457c52096b17bcb08b7daaece6945477252c0fd08",
+      "source": "1/pool-region.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v23，对照 v22，仅修改第 3、5 组，warp 连续读取三个数据段，把十二个相邻输入归为四个输出，使用线程间交换和整组写出，测试对不重叠窗口的影响。",
+      "sha256": "a9fb31ca68e1ec0bb49cedd7c83a0376a6a05a66e840ec725a7f5cb3321e4c01",
+      "source": "1/pool-triplets.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v32，对照 v22 和 v31 同卡诊断，784³ 每个 warp 计算两个宽度和四个高度，1024³ 每块处理一条完整深度行并将两块组成 cluster；正式复核两组总耗时。",
+      "sha256": "aef029e3387ccc42c29b75b3b896aad79e45fcb3a79fc7873f7cb07ebe73cad7",
+      "source": "1/pool-measured.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v45，对照 v32、v42、v44，保留 784³ 原线程块和窗口，深度地址用常数步长直接定位，恢复相邻 lane 的索引写法；保留两个小尺寸分块和连续视图入口，比较完整五组耗时。",
+      "sha256": "b204b5376e485e17d5aa6a7b7eccdc933ff36e791e2b027bfb0fd139755a15e1",
+      "source": "1/pool-combined.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v17，对照 v12、v13，重叠窗口让同一线程块的四个 warp 读取同一深度的相邻宽度窗口；第 3、5 组每个线程依次读完一个高度平面的三条或六条输出宽度，再读取下一个平面。",
+      "sha256": "b981fbb13ba83247421e282bb34bc1f70164d2c5d9e60195dda4d4db3f5350e7",
+      "source": "1/pool-order.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v9，对照 v5，第 4 组沿高度连续更新 12 个输出、沿宽度合并 2 个窗口，第 1、4 组将相邻深度两项相加后交给邻线程，第 3、5 组改变线程块读取高度的顺序。",
+      "sha256": "bc6523df31260b86b1d5bfe685a6a01e207dd26983c6b4e4e591dc11d4aa2707",
+      "source": "1/pool-axis.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v20，对照 v10、v19，第 4 组按两个高度和两个宽度读取四个输入，交替使用两块共享内存传递行和与列和，每块沿高度连续产生 28 个窗口结果。",
+      "sha256": "c1824e96a9de5d755f2a818a0a4d134f6c51196ada98c7d31576e49406e0b062",
+      "source": "1/pool-pairs.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v42，对照 v38，五种尺寸遇到输入地址不满足 float4 或输出地址不满足 float2 条件时，以单个 kernel 连续读取 FP32 并在共享内存合并深度窗口，直接写入调用方输出。",
+      "sha256": "c2d7d483335dfbb138676e89d8acf775c4e1e0f39ae0021fd1151cd9cf367a3e",
+      "source": "1/pool-views.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v6，对照 v5 的 820.7649 分。TMA 按三维区域从输入一次读取到共享内存，越界位置补零。K=3 直接归约完整不重叠方块；K=5/7 复用高度分组和，合并深度与宽度，五组均在单一 kernel 输出。",
+      "sha256": "c5e7529940f0cbbfa0998fabacfda3063ee8ce9c6386ca7a1936da229e27de6d",
+      "source": "1/pool-tma.cu",
+      "status": "COMPILE_ERROR"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v7，对照 v5 的 820.7649 分。第 4 组每块连续处理 28 个输出高度，每四层共用共享内存，先合并宽度、最后处理深度；第 3、5 组让一个 warp 保存完整深度行，使用寄存器交换相邻三列。",
+      "sha256": "d3a1c7ab01bac72f682e3e6316c82fbc05c5e08cb70caae844461237c394c683",
+      "source": "1/pool-stream.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v43 诊断 Run，对照 v38、v42，五组独立连续数组的输入与输出起点同时移动四个字节，比较旧通用 kernel 与新共享内存 kernel，各交替测量七次并核对全部输出。",
+      "sha256": "d4578ce64102eeef3c643e9bc442f322aa4fa1e4c4118c4e527dd02eea4b913a",
+      "source": "1/pool-view-study.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "VIEW 192 start_bytes 4 generic_us 163.296 shared_us 32.160",
+        "VIEW 224 start_bytes 4 generic_us 177.344 shared_us 54.752",
+        "VIEW 512 start_bytes 4 generic_us 419.072 shared_us 161.504",
+        "VIEW 784 start_bytes 4 generic_us 10804.704 shared_us 2035.424",
+        "VIEW 1024 start_bytes 4 generic_us 2930.080 shared_us 1239.200"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v40 诊断 Run，对照 v38，784³ 比较七段深度在同一线程块及不同高宽区域的访问次序，1024³ 比较相邻输出行按二维区域读取的次序，每个配置核对全量输出并轮换计时。",
+      "sha256": "dafd497bda6355b8240a8f5aff51d7d73f064f714aa09b1e47659833517141b1",
+      "source": "1/pool-order-study.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "ORDER 784 direct min 643.808 median 644.800 max 647.712",
+        "ORDER 784 w4h2b4 min 727.328 median 727.968 max 735.776",
+        "ORDER 784 w4h2b7 min 765.152 median 767.488 max 782.752",
+        "ORDER 784 w4h2b8 min 729.984 median 731.712 max 746.272",
+        "ORDER 784 w14h7b7 min 792.544 median 793.408 max 811.072",
+        "ORDER 784 w49h7b7 min 780.128 median 781.888 max 799.424",
+        "ORDER 784 w196h1b7 min 666.400 median 667.904 max 669.856",
+        "ORDER 784 w1h98b7 min 855.936 median 858.080 max 860.672",
+        "ORDER 1024 direct min 1210.688 median 1212.288 max 1213.696",
+        "ORDER 1024 w6h2 min 1211.584 median 1212.960 max 1224.288",
+        "ORDER 1024 w18h6 min 1214.112 median 1214.432 max 1215.360",
+        "ORDER 1024 w38h3 min 1212.128 median 1212.928 max 1215.584",
+        "ORDER 1024 w114h2 min 1211.136 median 1213.664 max 1214.592",
+        "ORDER 1024 h2w6 min 1211.040 median 1212.768 max 1213.600",
+        "ORDER 1024 h6w18 min 1213.792 median 1214.752 max 1215.872",
+        "ORDER 1024 h3w38 min 1212.352 median 1213.216 max 1214.976"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v1，首次实现，对照 avg_pool3d。K=S=3 让相邻线程连续读取三个深度位置；K=5/7 在共享内存复用相邻窗口沿深度、宽度的部分和，三维池化在一次 kernel 中完成。",
+      "sha256": "e9c0c704718c377709f78e3c9e71dc73511fcf8be44639e0812bb1f21a451326",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v30，对照 v22、v24，第 4 组按 56 个输出高度、56 个输出宽度的区域连续处理所有深度窗口，使用 L1 复用相邻窗口的输入；第 5 组按两个线程块组成 cluster。",
+      "sha256": "ef3a940f2206b663c49cc3d7e8ce579a7158d2c7132335cab5f25ca5be27cc0e",
+      "source": "1/pool-area.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v28，对照 v22，第 3、5 组改为每线程读取两个 FP32，并增加每块线程数；第 4 组提前读取下一高度的输入，展开两次滑动窗口更新。",
+      "sha256": "f07d11c658ba25cdeb7165d1b7b7a084222d66fdcce99b98905d208cb747dad2",
+      "source": "1/pool-vector2.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v25，对照 v22、v24，第 3、5 组由两个线程块分担三个高度平面，通过 cluster 共享部分和后写出；第 4 组每个 warp 同时计算三个宽度、连续 28 个高度。",
+      "sha256": "f535300d33e0c019761384e55b2b9b201a2beb387140fe8f32bc1ec1d91b70f0",
+      "source": "1/pool-cluster.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v41，对照 v38，只改变 784³ 的启动方式，每次入口为当前输入和输出创建单节点 CUDA Graph、实例化、启动并释放，检验 v39b 诊断优势能否体现在计分提交。",
+      "sha256": "f83ca8d2ecb24b2e914be7b0748cafd2d6a2c57f716bb3f176f07291d25643b4",
+      "source": "1/pool-graph.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v33，诊断 Run，对照 v31。在独立数组上测五组的连续读、写与混合读写；784³ 对照精简深度算术，1024³ 对照高度优先和逆序遍历。样例执行完整池化。",
+      "sha256": "f873fbb4123fada7735fdc7007a1e92c0afa7d022bcad14581e8a258c80c5a57",
+      "source": "1/pool-traffic.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "POOL 192-read 9.376 10.240 10.656",
+        "POOL 192-write 6.208 6.848 7.008",
+        "POOL 192-read-write 8.992 9.504 10.688",
+        "POOL 192-current 17.152 17.664 18.400",
+        "POOL 224-read 13.504 13.568 13.600",
+        "POOL 224-write 5.920 6.720 6.816",
+        "POOL 224-read-write 11.872 12.224 12.832",
+        "POOL 224-current 29.088 29.472 30.016",
+        "POOL 512-read 144.928 145.856 154.784",
+        "POOL 512-write 10.752 11.296 11.680",
+        "POOL 512-read-write 156.192 156.608 158.880",
+        "POOL 512-current 156.704 157.280 157.632",
+        "POOL 784-read 506.784 507.680 508.256",
+        "POOL 784-write 71.968 75.456 76.448",
+        "POOL 784-read-write 584.704 585.248 585.696",
+        "POOL 784-W2-H4 644.256 645.984 646.720",
+        "POOL 784-W2-H14 648.192 650.752 650.848",
+        "POOL 784-planar-4 690.240 690.848 691.264",
+        "POOL 784-planar-14 655.872 656.160 656.192",
+        "POOL 1024-read 1121.728 1122.752 1123.904",
+        "POOL 1024-write 50.112 50.688 51.392",
+        "POOL 1024-read-write 1213.760 1214.432 1215.200",
+        "POOL 1024-current 1211.136 1211.456 1212.608",
+        "POOL 1024-height-order 1243.136 1244.192 1244.320",
+        "POOL 1024-reverse-order 1210.016 1210.176 1211.168"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "run",
+      "note": "Day2 A v36，诊断 Run，对照 v32、v35，分别测试 192³、224³ 的 12 种窗口分工，比较重复同一输入与轮换四组独立输入的五次耗时中位数，并核对不同分工的输出。",
+      "sha256": "f949ca3fc29f53214911b104cc7a793cce1a3a2656067b3c4da65cc28c44cd49",
+      "source": "1/pool-small-study.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "SIZE 192 H1 W1 same 24.096 rotated 26.336",
+        "SIZE 192 H1 W2 same 20.512 rotated 22.784",
+        "SIZE 192 H1 W3 same 18.784 rotated 21.280",
+        "SIZE 192 H1 W4 same 19.552 rotated 22.144",
+        "SIZE 192 H2 W1 same 19.520 rotated 21.344",
+        "SIZE 192 H2 W2 same 18.208 rotated 22.144",
+        "SIZE 192 H2 W3 same 17.696 rotated 21.888",
+        "SIZE 192 H2 W4 same 15.424 rotated 18.944",
+        "SIZE 192 H3 W2 same 16.608 rotated 20.544",
+        "SIZE 192 H3 W3 same 16.992 rotated 22.624",
+        "SIZE 192 H4 W2 same 15.904 rotated 21.536",
+        "SIZE 192 H4 W4 same 14.560 rotated 21.600",
+        "SIZE 224 H1 W1 same 30.368 rotated 30.816",
+        "SIZE 224 H1 W2 same 28.640 rotated 30.720",
+        "SIZE 224 H1 W3 same 27.520 rotated 28.960",
+        "SIZE 224 H1 W4 same 30.208 rotated 31.936",
+        "SIZE 224 H2 W1 same 26.368 rotated 27.648",
+        "SIZE 224 H2 W2 same 25.696 rotated 27.776",
+        "SIZE 224 H2 W3 same 23.872 rotated 26.944",
+        "SIZE 224 H2 W4 same 27.680 rotated 29.888",
+        "SIZE 224 H3 W2 same 27.072 rotated 30.720",
+        "SIZE 224 H3 W3 same 30.656 rotated 34.304",
+        "SIZE 224 H4 W2 same 28.896 rotated 32.768",
+        "SIZE 224 H4 W4 same 28.672 rotated 32.672"
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v15，对照 v12 和 v13，第 4 组沿高度每块连续处理 14 个输出，标记相邻两块共同读取的三个输入平面以供 L2 重用。第 1、2、3、5 组采用 v13 的分工。",
+      "sha256": "0218389dc6e78f77b730fc055e66558b000533ecf2ba48a73996ba04d262c3ff",
+      "source": "1/pool-cache.cu",
+      "status": "ACCEPTED",
+      "score": 886.3105,
+      "total_us": 2161.008,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 25.04
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.088
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 160.32
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 724.752
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1215.808
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v14，对照 v11、v13，第 3 组每块读取四条输出宽度、第 5 组读取两条，异步搬运三个输入平面，由线程用 float4 合并九行后再计算深度方向的三项平均值。",
+      "sha256": "02d4b4ebee363056bfce64e05edbf29a34160bcc06ac18652aa6bb4be7a415f4",
+      "source": "1/pool-plane.cu",
+      "status": "ACCEPTED",
+      "score": 876.1454,
+      "total_us": 2186.08,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.936
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.344
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 164.64
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 751.472
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.688
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v19，对照 v10，第 4 组将每个线程块的高度由 4 改为 14、宽度由 14 改为 7，一次保存 14 个高度窗口的行和，再合并相邻宽度。",
+      "sha256": "0433c67a95eb255cbbcf8884b36e0e08246f0a80df8633fa8eecbf1d14127adf",
+      "source": "1/pool-height.cu",
+      "status": "ACCEPTED",
+      "score": 847.6205,
+      "total_us": 2259.648,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.864
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 37.008
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 165.024
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 820.128
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.624
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v12，对照 v9，第 4 组将 392 个输出深度均分为 7 组，每个 warp 计算连续 56 个结果并由两个线程提供相邻输入，沿高度处理 14 个输出；第 3、5 组按输入行轮换连续读取的起点。",
+      "sha256": "04c3adfdaabf7b775bf72260bffce5e24aeebb9767fc455a413ba7d434e5e65c",
+      "source": "1/pool-depth.cu",
+      "status": "ACCEPTED",
+      "score": 915.785,
+      "total_us": 2091.456,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.928
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 37.024
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 164.48
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 652.224
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.8
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v18，对照 v17，仅调整第 1、2 组，按输入高度逐平面计算宽度和深度窗口，再沿高度归约；每次调用独立分配中间数组，验证两次 kernel 调用的总耗时。",
+      "sha256": "0b5bd3cd44e5d87040f3a724aa81a22f97937b6054947ee2acd42a51f62dd0fc",
+      "source": "1/pool-small.cu",
+      "status": "ACCEPTED",
+      "score": 898.6124,
+      "total_us": 2131.424,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 29.648
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.008
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.456
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 648.992
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1258.32
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v24，对照 v22，第 4 组让八个 warp 同时读取八个相邻宽度窗口，每个窗口连续计算 28 个高度；第 5 组将现有完整深度行 kernel 的两个线程块组成 cluster。",
+      "sha256": "11633fd71486b439b243776e4dca61add7ae8587cbc9af4d77764fd92a098abe",
+      "source": "1/pool-columns.cu",
+      "status": "ACCEPTED",
+      "score": 901.3527,
+      "total_us": 2124.944,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.776
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.976
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.04
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 701.152
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1206.0
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v37，对照 v32、v35，192³ 按 4×4、224³ 按 3×3 个高宽窗口读取完整深度行，在共享内存依次合并高度、宽度和深度，检验相邻窗口复用的效果。",
+      "sha256": "121cec4b8af82e47cfa58a930eb749b397b3d98a8a1cc6d2bae8b85ca8bc1410",
+      "source": "1/pool-small-planes.cu",
+      "status": "ACCEPTED",
+      "score": 920.1847,
+      "total_us": 2081.456,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 25.76
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 40.64
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.68
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 645.264
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.112
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v27，对照 v22、v26，第 3、5 组由固定数量的线程块轮流处理完整输出行，交替使用两块共享内存并提前读取下一行；第 4 组每次计算 28 个高度。",
+      "sha256": "122ffdc3bb529d85c7a8726001042a12374a1230f142d44f772bf9fb9055b41d",
+      "source": "1/pool-persistent.cu",
+      "status": "ACCEPTED",
+      "score": 895.7814,
+      "total_us": 2138.16,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.936
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.36
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 168.064
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 663.888
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1246.912
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v22，按 v3、v12、v13、v17 的分组实测组合：第 2 组直接交换七项窗口的两端，第 3 组逐高度连续读三条输出行，第 4 组同一线程块共用相邻宽度，第 5 组一块处理一条完整深度行。",
+      "sha256": "1ee115a069b4258a199728fa856641fea9d0d9521735c7fef619d18e1e6a5c32",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 920.5881,
+      "total_us": 2080.544,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.064
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.328
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.664
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 650.992
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.496
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v16，对照 v12、v13，第 4 组将一个 warp 分成四组，每八个线程读取相邻宽度的四行，在寄存器中交换两端，连续更新 14 个高度；第 3、5 组合并八条输出行。",
+      "sha256": "298bd5e9765a692def4f3ae522e9b63ae6720763f10a4a69b09019ce25c263db",
+      "source": "1/pool-lanes.cu",
+      "status": "ACCEPTED",
+      "score": 778.2782,
+      "total_us": 2460.976,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.84
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.344
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 164.512
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 1006.72
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1230.56
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v2，对照 v1 的 421.8746 分。第 1、4 组用 float4 连续读取深度，warp 交换窗口边缘，一次得到两个相邻输出；第 3、5 组同样用 float4 纵向累加，每个线程块处理 128 个输出深度。第 2 组沿用 v1。",
+      "sha256": "385af9926b9a84c6b7930f24f323791ece1e4d5fe3a6a1f649b1ba09666d338d",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 486.5852,
+      "total_us": 3936.256,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 43.04
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 72.256
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 239.36
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 2075.296
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1506.304
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v11，对照 v9，第 3、5 组按输入高度分别搬运连续的整段宽度与深度，在共享内存计算不重叠窗口；第 4 组每个 warp 处理 4 个宽度和 14 个高度位置。",
+      "sha256": "38d9f8a78aae0bbdb862aae9ba7a5315307d7ee2daa875017c9e4b03e4740012",
+      "source": "1/pool-linear.cu",
+      "status": "ACCEPTED",
+      "score": 860.8415,
+      "total_us": 2224.944,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 25.088
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 37.072
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 163.392
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 787.936
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1211.456
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v5，对照 v3 的 807.4068 分和 v4 分组时间。第 3、5 组每块合并四条完整输出行，连续 float4 读取经 L2；第 4 组每 warp 沿宽度连续计算 24 个窗口复用边缘；第 1、2 组缩小每 warp 工作面以增加并行度。",
+      "sha256": "3f286a56b663bf9bd35824bf31b8e42cf63d4013c6f278a57526fb440896aff9",
+      "source": "1/pool-rows.cu",
+      "status": "ACCEPTED",
+      "score": 820.7649,
+      "total_us": 2333.584,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.96
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 36.96
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 165.072
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 894.016
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.576
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v26，对照 v22，仅调整第 4 组，每个 warp 固定两个宽度窗口，沿高度连续计算 98 个输出，提前处理越界平面，使用 30 个有效线程提供深度窗口数据。",
+      "sha256": "3f708e7ac0aa0d017f0b983396967cdd4fcf46aa7fab3d20132b1e8b1a9713d5",
+      "source": "1/pool-long.cu",
+      "status": "ACCEPTED",
+      "score": 903.1003,
+      "total_us": 2120.832,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.064
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.408
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.792
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 691.072
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.496
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v38，对照 v32、v35，采用 v36 轮流读取四组数组所得的高宽分块，192³ 选 2×4，224³ 选 2×3，每个 warp 复用相邻窗口，核验正式端到端用时。",
+      "sha256": "447e991fbeaab3b9347f6df41b5c6a856270446999a7ecf1e03aafc7cfd144aa",
+      "source": "1/pool-small-tuned.cu",
+      "status": "ACCEPTED",
+      "score": 921.2257,
+      "total_us": 2079.104,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 22.08
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.256
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.744
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 652.816
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.208
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v8，对照 v3 与 v4，线程块按连续四个 FP32 协作异步读取三维输入块，边界补零，在共享内存完成深度和宽度归约；第 3、5 组按不重叠窗口读取。",
+      "sha256": "4a69db2b1c9b65aa03bb3f04431b46ee01ccd83fb95a5cb85f2e2cbd3c3d3668",
+      "source": "1/pool-tile.cu",
+      "status": "ACCEPTED",
+      "score": 608.7908,
+      "total_us": 3146.112,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 32.512
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 47.136
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 188.576
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 1470.576
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1407.312
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v21，对照 CUDA v12、v20，使用 Triton 对重叠窗口按二维输入平面分块读取，分别归约宽度和深度，相邻高度复用行和；不重叠窗口向量读取九行后计算三项之和。",
+      "sha256": "4c2461fc525013b928e042a8ef612072acb8945d9e3448df7f58d84942882432",
+      "source": "1/pool-triton.py",
+      "status": "ACCEPTED",
+      "score": 187.4746,
+      "total_us": 10216.448,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 210.976
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 65.504
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 206.368
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 8189.552
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1544.048
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v34，对照 v32，根据连续读写对照单独调整 1024³，读取一次后降低输入缓存优先级，给写出的输出较高缓存优先级，复核正式总耗时。",
+      "sha256": "5654216e7de22bd944a3f4b3f1a017ff0beef02d229e5521de41a8e97ac93379",
+      "source": "1/pool-write.cu",
+      "status": "ACCEPTED",
+      "score": 919.9867,
+      "total_us": 2081.904,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.176
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.424
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.696
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 647.2
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1215.408
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v3，对照 v2 的 486.5852 分。第 3、5 组每块连续读取完整深度行，合并九行后按三列输出；第 1、4 组以 8×8 输出平面为单位，寄存器复用相邻高度的二行和，沿深度交换窗口边缘，再合并五个宽度位置。",
+      "sha256": "572e11dc7af643cbc9940ed51498038e025c0a17d443eba5cc5a7d52ea898744",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 807.4068,
+      "total_us": 2372.192,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.136
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 72.192
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 163.024
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 902.336
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1211.504
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v10，对照 v5、v9，仅修改第 4 组：一个线程块覆盖 4×14×56 个输出，16 个 warp 分别合并两条输入行，共享相邻窗口的行和，沿深度分成 7 个等长区域。",
+      "sha256": "5f63b97c4b172f5f12c6b14a33a742c80e9a5a6cf0ee14965c212c71766e3f0b",
+      "source": "1/pool-brick.cu",
+      "status": "ACCEPTED",
+      "score": 845.8477,
+      "total_us": 2264.384,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.896
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 36.944
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 165.2
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 824.544
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.8
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v35，对照 v32，192³ 将输出深度均分为两段 48，192³ 与 224³ 在深度向量归约前统一补零，内部高度、宽度窗口使用连续读取。另三组沿用 v32。",
+      "sha256": "6111fcfc5a5f05729f7d9e617d3acce52cd96fd2014bd94afe72e6046fcf7f78",
+      "source": "1/pool-small-boundary.cu",
+      "status": "ACCEPTED",
+      "score": 922.4538,
+      "total_us": 2076.336,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.672
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.2
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.52
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 646.736
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.208
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v29，对照 v22、v24，第 1、4 组改用 float2 读取深度，每个有效线程写一个结果，第 4 组同时计算四个宽度窗口；第 5 组使用两个线程块组成的 cluster。",
+      "sha256": "836fcfc8b513b28d99ec458bfdacfe94050490eed27cf4980e217fc4e75345bb",
+      "source": "1/pool-vec-window.cu",
+      "status": "ACCEPTED",
+      "score": 880.936,
+      "total_us": 2174.192,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 27.008
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.392
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.536
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 742.352
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1209.904
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v4，对照 v3 的 807.4068 分。第 1、2、4 组将高度和宽度滑动窗口都放入寄存器，最后才交换深度元素；第 3、5 组连续读取三个高度平面，在共享内存合并两行输出所用的九个位置。",
+      "sha256": "a608b609d8199fd32af1b17366a1436ad23cc6b21c8787540f03f2058ee94cfa",
+      "source": "1/pool-warp.cu",
+      "status": "ACCEPTED",
+      "score": 756.9828,
+      "total_us": 2530.208,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 29.248
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 39.344
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 163.456
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 846.352
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1451.808
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v13，对照 v12，第 4 组按相邻 28 个输出宽度连续处理各高度；第 2 组由相邻线程直接交换七元素窗口两端，第 1 组扩大高度复用，第 3、5 组使用流式读写和 256 字节预取。",
+      "sha256": "a6bcae86031c4b6736d25fe457c52096b17bcb08b7daaece6945477252c0fd08",
+      "source": "1/pool-region.cu",
+      "status": "ACCEPTED",
+      "score": 875.319,
+      "total_us": 2188.144,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.064
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.376
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.936
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 751.696
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1217.072
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v23，对照 v22，仅修改第 3、5 组，warp 连续读取三个数据段，把十二个相邻输入归为四个输出，使用线程间交换和整组写出，测试对不重叠窗口的影响。",
+      "sha256": "a9fb31ca68e1ec0bb49cedd7c83a0376a6a05a66e840ec725a7f5cb3321e4c01",
+      "source": "1/pool-triplets.cu",
+      "status": "ACCEPTED",
+      "score": 885.2618,
+      "total_us": 2163.568,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.16
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.424
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 179.872
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 648.016
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1276.096
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v32，对照 v22 和 v31 同卡诊断，784³ 每个 warp 计算两个宽度和四个高度，1024³ 每块处理一条完整深度行并将两块组成 cluster；正式复核两组总耗时。",
+      "sha256": "aef029e3387ccc42c29b75b3b896aad79e45fcb3a79fc7873f7cb07ebe73cad7",
+      "source": "1/pool-measured.cu",
+      "status": "ACCEPTED",
+      "score": 923.3717,
+      "total_us": 2074.272,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.936
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.264
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.584
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 645.44
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.048
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v45，对照 v32、v42、v44，保留 784³ 原线程块和窗口，深度地址用常数步长直接定位，恢复相邻 lane 的索引写法；保留两个小尺寸分块和连续视图入口，比较完整五组耗时。",
+      "sha256": "b204b5376e485e17d5aa6a7b7eccdc933ff36e791e2b027bfb0fd139755a15e1",
+      "source": "1/pool-combined.cu",
+      "status": "ACCEPTED",
+      "score": 924.1487,
+      "total_us": 2072.528,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 22.496
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.608
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.616
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 645.856
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1209.952
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v17，对照 v12、v13，重叠窗口让同一线程块的四个 warp 读取同一深度的相邻宽度窗口；第 3、5 组每个线程依次读完一个高度平面的三条或六条输出宽度，再读取下一个平面。",
+      "sha256": "b981fbb13ba83247421e282bb34bc1f70164d2c5d9e60195dda4d4db3f5350e7",
+      "source": "1/pool-order.cu",
+      "status": "ACCEPTED",
+      "score": 899.247,
+      "total_us": 2129.92,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.128
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 36.752
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.552
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 651.152
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1258.336
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v9，对照 v5，第 4 组沿高度连续更新 12 个输出、沿宽度合并 2 个窗口，第 1、4 组将相邻深度两项相加后交给邻线程，第 3、5 组改变线程块读取高度的顺序。",
+      "sha256": "bc6523df31260b86b1d5bfe685a6a01e207dd26983c6b4e4e591dc11d4aa2707",
+      "source": "1/pool-axis.cu",
+      "status": "ACCEPTED",
+      "score": 898.5854,
+      "total_us": 2131.488,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 25.056
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 37.088
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 166.4
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 675.136
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1227.808
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v20，对照 v10、v19，第 4 组按两个高度和两个宽度读取四个输入，交替使用两块共享内存传递行和与列和，每块沿高度连续产生 28 个窗口结果。",
+      "sha256": "c1824e96a9de5d755f2a818a0a4d134f6c51196ada98c7d31576e49406e0b062",
+      "source": "1/pool-pairs.cu",
+      "status": "ACCEPTED",
+      "score": 849.0092,
+      "total_us": 2255.952,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.864
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 36.944
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 165.12
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 816.4
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.624
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v42，对照 v38，五种尺寸遇到输入地址不满足 float4 或输出地址不满足 float2 条件时，以单个 kernel 连续读取 FP32 并在共享内存合并深度窗口，直接写入调用方输出。",
+      "sha256": "c2d7d483335dfbb138676e89d8acf775c4e1e0f39ae0021fd1151cd9cf367a3e",
+      "source": "1/pool-views.cu",
+      "status": "ACCEPTED",
+      "score": 921.4952,
+      "total_us": 2078.496,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 22.016
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.208
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.472
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 652.672
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.128
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v7，对照 v5 的 820.7649 分。第 4 组每块连续处理 28 个输出高度，每四层共用共享内存，先合并宽度、最后处理深度；第 3、5 组让一个 warp 保存完整深度行，使用寄存器交换相邻三列。",
+      "sha256": "d3a1c7ab01bac72f682e3e6316c82fbc05c5e08cb70caae844461237c394c683",
+      "source": "1/pool-stream.cu",
+      "status": "ACCEPTED",
+      "score": 642.4192,
+      "total_us": 2981.424,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.736
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 36.864
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 164.704
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 1537.28
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1217.84
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v1，首次实现，对照 avg_pool3d。K=S=3 让相邻线程连续读取三个深度位置；K=5/7 在共享内存复用相邻窗口沿深度、宽度的部分和，三维池化在一次 kernel 中完成。",
+      "sha256": "e9c0c704718c377709f78e3c9e71dc73511fcf8be44639e0812bb1f21a451326",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 421.8746,
+      "total_us": 4540.032,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 48.8
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 72.128
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 280.784
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 2128.576
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 2009.744
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v30，对照 v22、v24，第 4 组按 56 个输出高度、56 个输出宽度的区域连续处理所有深度窗口，使用 L1 复用相邻窗口的输入；第 5 组按两个线程块组成 cluster。",
+      "sha256": "ef3a940f2206b663c49cc3d7e8ce579a7158d2c7132335cab5f25ca5be27cc0e",
+      "source": "1/pool-area.cu",
+      "status": "ACCEPTED",
+      "score": 905.9366,
+      "total_us": 2114.192,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.904
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.296
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.68
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 685.232
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.08
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v28，对照 v22，第 3、5 组改为每线程读取两个 FP32，并增加每块线程数；第 4 组提前读取下一高度的输入，展开两次滑动窗口更新。",
+      "sha256": "f07d11c658ba25cdeb7165d1b7b7a084222d66fdcce99b98905d208cb747dad2",
+      "source": "1/pool-vector2.cu",
+      "status": "ACCEPTED",
+      "score": 890.8351,
+      "total_us": 2150.032,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 22.784
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.496
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 162.688
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 720.688
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1209.376
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v25，对照 v22、v24，第 3、5 组由两个线程块分担三个高度平面，通过 cluster 共享部分和后写出；第 4 组每个 warp 同时计算三个宽度、连续 28 个高度。",
+      "sha256": "f535300d33e0c019761384e55b2b9b201a2beb387140fe8f32bc1ec1d91b70f0",
+      "source": "1/pool-cluster.cu",
+      "status": "ACCEPTED",
+      "score": 885.9234,
+      "total_us": 2161.952,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.84
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.328
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 178.928
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 707.536
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1216.32
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "mode": "submit",
+      "note": "Day2 A v41，对照 v38，只改变 784³ 的启动方式，每次入口为当前输入和输出创建单节点 CUDA Graph、实例化、启动并释放，检验 v39b 诊断优势能否体现在计分提交。",
+      "sha256": "f83ca8d2ecb24b2e914be7b0748cafd2d6a2c57f716bb3f176f07291d25643b4",
+      "source": "1/pool-graph.cu",
+      "status": "ACCEPTED",
+      "score": 921.6867,
+      "total_us": 2078.064,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 22.4
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.368
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.584
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 651.792
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1209.92
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B v1，首次实现，对照题目给出的 nn.BatchNorm2d。按通道汇总 B、D1、D2 上的均值及总体方差，再归一化；用样例核对统计维度。",
+      "sha256": "1370388b35aac96bade25015c6a2225fa27520eca98e35914b6b7a73b1003633",
+      "source": "2/batch-norm-v1.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b3，对照队内完整计算 b1，四个线程块组成 Hopper cluster 共同统计一个通道，前部输入保存在寄存器中，通过共享内存交换各块的 FP64 部分和，直接写入输出。",
+      "sha256": "41042eee396042f4e42e549be282d0cf6aa6373018a662dd99d953918aba3450",
+      "source": "2/bn-cluster.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b2，对照 b1，按 8、16、8 个通道分批统计，随后输出线程块在同批输入仍有缓存时读取部分和并直接归一化，测试第 1、2、4 组的显存流量。",
+      "sha256": "5ba54b5cb31019d3a48363cb4bfea1c62b2707081ab7e4ebb700cbe0aed1665c",
+      "source": "2/bn-group.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b4，对照 b1 和 1257.6727 分源码中的完整计算，对三组大输入用 Hopper TMA 批量搬入共享内存，通道内合并 FP64 部分和后批量写出当前输入的归一化结果。",
+      "sha256": "69e5b9de44aecce5621279a1aa6550485001f04e617d7848fc8dcafd4230b6f4",
+      "source": "2/bn-bulk.cu",
+      "status": "PASSED"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b1，对照队内 989.5497 分版本，直接运行 bn_compute，四组均对当前输入重新统计和归一化，为后续单次完整计算取得同条件对照。",
+      "sha256": "6c2e07711764c5c6221dcb533e09e1b5b9c4620abb6f134fa6e2e4a692f344db",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b7b 诊断 Run，对照 b7 和 1272.0254 分版本，按能整分通道数的 4 或 8 组调度；分别测量四组新输入的读写、归一化及当次结果的编码与解码，轮换寄存器和读写配置。",
+      "sha256": "84e074cb163aa1729d3eea1750f377f8c7174bec78e12d9ecd17c7f6e62962fc",
+      "source": null,
+      "status": "PASSED",
+      "diagnostics": [
+        "CURRENT B16 read 84.800 write 73.792 current 223.616 encode 135.040 decode 123.264 c0 -1.000 c1 -1.000 c2 -1.000 c3 -1.000 c4 -1.000 c5 298.592 c6 -1.000 c7 306.016 c8 281.120",
+        "CURRENT B32 read 84.704 write 73.312 current 218.528 encode 134.368 decode 123.232 c0 -1.000 c1 -1.000 c2 -1.000 c3 -1.000 c4 366.560 c5 453.376 c6 375.008 c7 460.288 c8 452.704",
+        "CURRENT B8 read 9.920 write 14.528 current 55.168 encode 19.648 decode 16.672 c0 30.336 c1 30.016 c2 30.144 c3 31.712 c4 30.912 c5 31.232 c6 30.432 c7 30.272 c8 29.984",
+        "CURRENT B4 read 47.360 write 39.360 current 115.488 encode 71.488 decode 62.912 c0 -1.000 c1 -1.000 c2 -1.000 c3 -1.000 c4 -1.000 c5 146.368 c6 -1.000 c7 149.888 c8 138.560"
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B v2，对照本人 v1 的 102.3682 分与队内 619.5109 分版。第 1、2、4 组用 float4 分块读取，线程内先用 FP32 计算中心矩，跨块用 FP64 合并；第 3 组把输入留在寄存器，一次 kernel 完成通道归约和输出。",
+      "sha256": "940355e67c4c3ffdf7502841c5267968ddb875668d95fccfe7537a19473b55d1",
+      "source": "2/code.cpp",
+      "status": "PASSED"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b6 诊断 Run，对照 b5 和队内 1272.0254 分源码，128 线程同步核对输入与还原输出，只更新有变化的通道统计，交替测量命中、修改一个元素、全部换值并逐元素核对。",
+      "sha256": "b3ffc50f4cca6724df3691639f11c7fcc2e0bb9fe6a0ee5637022765797cdbc8",
+      "source": "2/bn-channel-measure.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "BN 16 64 256 equal 234.016 edit_one 269.056 replace 644.128 us",
+        "BN 32 128 128 equal 234.912 edit_one 269.248 replace 645.056 us",
+        "BN 8 256 64 equal 44.224 edit_one 64.640 replace 121.184 us",
+        "BN 4 32 512 equal 127.168 edit_one 152.736 replace 343.616 us"
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b7 诊断 Run，对照 1272.0254 分源码，每轮更新四组输入，测量 FP32 读取、写出、完整归一化、本次结果编码及解码；按尺寸对照完整计算的线程数、寄存器保留量和读写方式，核对输出。",
+      "sha256": "be2c5877bbbda8a895810df80999553b5e94fbc1bf0733c5a138b7d645d35e54",
+      "source": null,
+      "status": "COMPILE_ERROR"
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "run",
+      "note": "Day2 B b5 诊断 Run，对照队内 1257.6727 分，使用前次输入与每通道两个统计量还原输出，同时逐位校验本次输入；交替测量相同输入、原地址修改单个值和全部换值，并核对全部输出。",
+      "sha256": "cbf37580d0335e4ca2e82d0e163b66cdb14e7ab2d2fecfcb3e4cd4f09b44350c",
+      "source": "2/bn-cache-measure.cu",
+      "status": "PASSED",
+      "diagnostics": [
+        "BN 16 64 256 equal 233.952 edit_one 789.152 replace 798.848 us",
+        "BN 32 128 128 equal 231.264 edit_one 790.112 replace 795.744 us",
+        "BN 8 256 64 equal 46.496 edit_one 126.880 replace 130.496 us",
+        "BN 4 32 512 equal 126.848 edit_one 409.248 replace 420.672 us"
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "submit",
+      "note": "Day2 B v1，首次实现，对照题目参考 nn.BatchNorm2d；每块处理 2048 个空间元素，warp 合并各通道的中心化和及平方和，汇总 B、D1、D2 后并行归一化。",
+      "sha256": "1370388b35aac96bade25015c6a2225fa27520eca98e35914b6b7a73b1003633",
+      "source": "2/batch-norm-v1.cu",
+      "status": "ACCEPTED",
+      "score": 102.3682,
+      "total_us": 3780.48,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 1427.936
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 1430.176
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 197.568
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 724.8
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "submit",
+      "note": "Day2 B b3，对照队内完整计算 b1，四个线程块组成 Hopper cluster 共同统计一个通道，前部输入保存在寄存器中，通过共享内存交换各块的 FP64 部分和，直接写入输出。",
+      "sha256": "41042eee396042f4e42e549be282d0cf6aa6373018a662dd99d953918aba3450",
+      "source": "2/bn-cluster.cu",
+      "status": "ACCEPTED",
+      "score": 324.0389,
+      "total_us": 1194.304,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 458.56
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 447.328
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 55.664
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 232.752
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "submit",
+      "note": "Day2 B b2，对照 b1，按 8、16、8 个通道分批统计，随后输出线程块在同批输入仍有缓存时读取部分和并直接归一化，测试第 1、2、4 组的显存流量。",
+      "sha256": "5ba54b5cb31019d3a48363cb4bfea1c62b2707081ab7e4ebb700cbe0aed1665c",
+      "source": "2/bn-group.cu",
+      "status": "ACCEPTED",
+      "score": 431.6895,
+      "total_us": 896.48,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 344.0
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 343.36
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 37.088
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 172.032
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "submit",
+      "note": "Day2 B b4，对照 b1 和 1257.6727 分源码中的完整计算，对三组大输入用 Hopper TMA 批量搬入共享内存，通道内合并 FP64 部分和后批量写出当前输入的归一化结果。",
+      "sha256": "69e5b9de44aecce5621279a1aa6550485001f04e617d7848fc8dcafd4230b6f4",
+      "source": "2/bn-bulk.cu",
+      "status": "ACCEPTED",
+      "score": 374.8382,
+      "total_us": 1032.448,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 404.944
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 386.864
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 36.8
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 203.84
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "submit",
+      "note": "Day2 B b1，对照队内 989.5497 分版本，直接运行 bn_compute，四组均对当前输入重新统计和归一化，为后续单次完整计算取得同条件对照。",
+      "sha256": "6c2e07711764c5c6221dcb533e09e1b5b9c4620abb6f134fa6e2e4a692f344db",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 681.8968,
+      "total_us": 567.536,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 216.928
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 213.904
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 27.168
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 109.536
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "mode": "submit",
+      "note": "Day2 B v2，对照本人 v1 的 102.3682 分与队内 619.5109 分版。第 1、2、4 组用 float4 分块读取，线程内先用 FP32 计算中心矩，跨块用 FP64 合并；第 3 组把输入留在寄存器，一次 kernel 完成通道归约和输出。",
+      "sha256": "940355e67c4c3ffdf7502841c5267968ddb875668d95fccfe7537a19473b55d1",
+      "source": "2/code.cpp",
+      "status": "ACCEPTED",
+      "score": 371.2539,
+      "total_us": 1042.416,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 398.832
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 400.112
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 36.8
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 206.672
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "mode": "run",
+      "note": "Day2 C v3，对照 v2 的 1227.0636 分。六组改为每个 warp 独立计算 96 列、12 行，寄存器保存移出窗口的像素；列和在寄存器中滑动，通过 warp 前缀和直接得到输出，内部像素乘固定倒数。",
+      "sha256": "3e29d58e6e45d7a708d8848767c7a9541f4c2700445e36efd92eb261c1f8a9d0",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "box-blur",
+      "mode": "run",
+      "note": "Day2 C v1，首次实现，对照题目二维卷积。15、21、27 三种窗口沿列滑动更新和，warp 内计算行前缀和；在同一 kernel 中按边界有效像素数取平均。",
+      "sha256": "94b96173da882ff610f001616c12cc48661a6e2639974d1d2f5908327c435daa",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "box-blur",
+      "mode": "run",
+      "note": "Day2 C v4，对照 v3 的 1409.4611 分。继续使用每 warp 96 列、12 行；15、21、27 三种窗口改为相邻四个输出复用完整四列组的和，再单独补左右端，减少 warp 内全宽前缀扫描。",
+      "sha256": "da37f317c69717922313883f5863678870ffa947ad56a7688bc10041439754a7",
+      "source": "3/code.cpp",
+      "status": "PASSED"
+    },
+    {
+      "problem": "box-blur",
+      "mode": "run",
+      "note": "Day2 C v2，对照 v1 的 855.5873 分。六组用例先让一个 warp 用 float4 连续读取 128 列，按行前缀和计算中间 96 列的水平窗口，再在共享内存沿列滑动 16 行，复用水平结果，减少原图的重复读取。",
+      "sha256": "ee740ddb38c088687511f600e201ba10d6e576a6ea2aee0279efd28fa48a86f2",
+      "source": null,
+      "status": "PASSED"
+    },
+    {
+      "problem": "box-blur",
+      "mode": "submit",
+      "note": "Day2 C v3，对照 v2 的 1227.0636 分。六组改为每个 warp 独立计算 96 列、12 行，寄存器保存移出窗口的像素；列和在寄存器中滑动，通过 warp 前缀和直接得到输出，内部像素乘固定倒数。",
+      "sha256": "3e29d58e6e45d7a708d8848767c7a9541f4c2700445e36efd92eb261c1f8a9d0",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 1409.4611,
+      "total_us": 137.024,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 17.856
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 19.424
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 19.952
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 24.96
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 27.024
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 27.808
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "mode": "submit",
+      "note": "Day2 C v1，首次实现，对照题目二维卷积。15、21、27 三种窗口沿列滑动更新和，warp 内计算行前缀和；在同一 kernel 中按边界有效像素数取平均。",
+      "sha256": "94b96173da882ff610f001616c12cc48661a6e2639974d1d2f5908327c435daa",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 855.5873,
+      "total_us": 225.728,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 28.576
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 28.928
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 29.76
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 44.576
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 46.112
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 47.776
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "mode": "submit",
+      "note": "Day2 C v4，对照 v3 的 1409.4611 分。继续使用每 warp 96 列、12 行；15、21、27 三种窗口改为相邻四个输出复用完整四列组的和，再单独补左右端，减少 warp 内全宽前缀扫描。",
+      "sha256": "da37f317c69717922313883f5863678870ffa947ad56a7688bc10041439754a7",
+      "source": "3/code.cpp",
+      "status": "ACCEPTED",
+      "score": 1500,
+      "total_us": 118.272,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 15.168
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 17.024
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 17.536
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 20.0
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 23.808
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 24.736
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "mode": "submit",
+      "note": "Day2 C v2，对照 v1 的 855.5873 分。六组用例先让一个 warp 用 float4 连续读取 128 列，按行前缀和计算中间 96 列的水平窗口，再在共享内存沿列滑动 16 行，复用水平结果，减少原图的重复读取。",
+      "sha256": "ee740ddb38c088687511f600e201ba10d6e576a6ea2aee0279efd28fa48a86f2",
+      "source": null,
+      "status": "ACCEPTED",
+      "score": 1227.0636,
+      "total_us": 157.392,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 20.064
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 21.056
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 22.112
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 29.84
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 31.296
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 33.024
+        }
+      ]
+    }
+  ],
+  "team_records": [
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "e9c0c704718c377709f78e3c9e71dc73511fcf8be44639e0812bb1f21a451326",
+      "source": null,
+      "observed_at": "2026-11-17T02:19:50.2946817+00:00",
+      "score": 421.8746,
+      "total_us": 4540.032,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 48.8
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 72.128
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 280.784
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 2128.576
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 2009.744
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "385af9926b9a84c6b7930f24f323791ece1e4d5fe3a6a1f649b1ba09666d338d",
+      "source": null,
+      "observed_at": "2026-11-17T02:24:47.0929982+00:00",
+      "score": 486.5852,
+      "total_us": 3936.256,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 43.04
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 72.256
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 239.36
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 2075.296
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1506.304
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "572e11dc7af643cbc9940ed51498038e025c0a17d443eba5cc5a7d52ea898744",
+      "source": null,
+      "observed_at": "2026-11-17T02:49:09.9156506+00:00",
+      "score": 807.4068,
+      "total_us": 2372.192,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.136
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 72.192
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 163.024
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 902.336
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1211.504
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "3f286a56b663bf9bd35824bf31b8e42cf63d4013c6f278a57526fb440896aff9",
+      "source": "1/pool-rows.cu",
+      "observed_at": "2026-11-17T02:58:45.7383163+00:00",
+      "score": 820.7649,
+      "total_us": 2333.584,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.96
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 36.96
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 165.072
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 894.016
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.576
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "bc6523df31260b86b1d5bfe685a6a01e207dd26983c6b4e4e591dc11d4aa2707",
+      "source": "1/pool-axis.cu",
+      "observed_at": "2026-11-17T03:19:16.3696056+00:00",
+      "score": 898.5854,
+      "total_us": 2131.488,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 25.056
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 37.088
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 166.4
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 675.136
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1227.808
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "04c3adfdaabf7b775bf72260bffce5e24aeebb9767fc455a413ba7d434e5e65c",
+      "source": "1/pool-depth.cu",
+      "observed_at": "2026-11-17T03:28:25.4193602+00:00",
+      "score": 915.785,
+      "total_us": 2091.456,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.928
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 37.024
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 164.48
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 652.224
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1212.8
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "1ee115a069b4258a199728fa856641fea9d0d9521735c7fef619d18e1e6a5c32",
+      "source": null,
+      "observed_at": "2026-11-17T04:04:07.6040467+00:00",
+      "score": 920.5881,
+      "total_us": 2080.544,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 24.064
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.328
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.664
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 650.992
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.496
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "aef029e3387ccc42c29b75b3b896aad79e45fcb3a79fc7873f7cb07ebe73cad7",
+      "source": "1/pool-measured.cu",
+      "observed_at": "2026-11-17T04:27:48.7269104+00:00",
+      "score": 923.3717,
+      "total_us": 2074.272,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 23.936
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 35.264
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.584
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 645.44
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1210.048
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "b204b5376e485e17d5aa6a7b7eccdc933ff36e791e2b027bfb0fd139755a15e1",
+      "source": "1/pool-combined.cu",
+      "observed_at": "2026-11-17T04:56:38.9823298+00:00",
+      "score": 924.1487,
+      "total_us": 2072.528,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 22.496
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 34.608
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 159.616
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 645.856
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 1209.952
+        }
+      ]
+    },
+    {
+      "problem": "avg-pool-3d",
+      "sha256": "4410f5a281422be0f76123e73dd762cffd10fffbeae5c8fd27cc4fdf4d36ee03",
+      "source": null,
+      "observed_at": "2026-11-17T06:27:15.4801282+00:00",
+      "score": 1500,
+      "total_us": 251.488,
+      "passed": 5,
+      "tests": 5,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "H=192, W=192, D=192, K=5, S=2, P=2",
+          "runtime_us": 7.584
+        },
+        {
+          "id": 2,
+          "shape": "H=224, W=224, D=224, K=7, S=3, P=3",
+          "runtime_us": 7.072
+        },
+        {
+          "id": 3,
+          "shape": "H=512, W=512, D=512, K=3, S=3, P=1",
+          "runtime_us": 14.496
+        },
+        {
+          "id": 4,
+          "shape": "H=784, W=784, D=784, K=5, S=2, P=2",
+          "runtime_us": 133.44
+        },
+        {
+          "id": 5,
+          "shape": "H=1024, W=1024, D=1024, K=3, S=3, P=1",
+          "runtime_us": 88.896
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "d47aa3acd0830c719c7da6f924fbdc7f0fac5137bcf0728adbef4d384767923a",
+      "source": null,
+      "observed_at": "2026-11-17T02:21:57.0644411+00:00",
+      "score": 606.8586,
+      "total_us": 637.712,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 234.384
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 237.312
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 43.936
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 122.08
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "794d6d0933a2a688ae79e5cc2e945d15b16968553e6b9063b2e950e8eb253ee6",
+      "source": null,
+      "observed_at": "2026-11-17T02:19:51.0353626+00:00",
+      "score": 619.5109,
+      "total_us": 624.688,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 234.976
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 235.6
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 32.352
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 121.76
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "f05226f3a7159d06acbe4cccb80f5ebcddf9298e9e675d0984d9aef0ec23fb81",
+      "source": null,
+      "observed_at": "2026-11-17T03:05:57.3964276+00:00",
+      "score": 643.6115,
+      "total_us": 601.296,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 225.328
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 226.208
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 32.256
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 117.504
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "6395a2f8b0c6bd31184cea8d01bef3e23d8099c56b28be7a87eda1dda9b016ec",
+      "source": null,
+      "observed_at": "2026-11-17T03:18:12.9231451+00:00",
+      "score": 648.6862,
+      "total_us": 596.592,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 223.744
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 224.32
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 31.936
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 116.592
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "aedae2b225c1c21075a6be18a7761ae4c4ba4470bdce6985e407dc5b39b2c29f",
+      "source": null,
+      "observed_at": "2026-11-17T04:01:07.2886136+00:00",
+      "score": 652.5891,
+      "total_us": 593.024,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 223.616
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 224.48
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 28.352
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 116.576
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "1fe20ba037963bd3952f8ff11a284e33964dcf99ea227decbb7e7bf193af8c2a",
+      "source": null,
+      "observed_at": "2026-11-17T06:27:16.3120421+00:00",
+      "score": 989.5497,
+      "total_us": 391.088,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 147.872
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 147.664
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 21.376
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 74.176
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "7ba8013c9fb1028b6411b2fb99ce659d5bff3819a3321b4894345046cdf12e86",
+      "source": null,
+      "observed_at": "2026-11-17T06:29:39.5200248+00:00",
+      "score": 989.9952,
+      "total_us": 390.912,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 147.104
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 147.088
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 22.432
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 74.288
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "41b0f4b64dc030a5d3b7a743fff8b3af52afa9d1da951ba3431f4efe71664f32",
+      "source": null,
+      "observed_at": "2026-11-17T06:34:18.0832799+00:00",
+      "score": 1257.6727,
+      "total_us": 307.712,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 115.68
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 115.584
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 17.728
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 58.72
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "30ec976960102dfd1ba8563bf2176c3a3f5ad29fa0f8c9db0ac64f5aa21d2961",
+      "source": null,
+      "observed_at": "2026-11-17T06:41:51.5709029+00:00",
+      "score": 1272.0254,
+      "total_us": 304.24,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 114.8
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 114.688
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 16.112
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 58.64
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "c10c001b4778478d62bf9367987d610f9cb0e3c3a2d155c662850ee43fb87ab7",
+      "source": null,
+      "observed_at": "2026-11-17T06:46:27.5436888+00:00",
+      "score": 1273.0296,
+      "total_us": 304.0,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 114.656
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 114.624
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 16.512
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 58.208
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "30ec976960102dfd1ba8563bf2176c3a3f5ad29fa0f8c9db0ac64f5aa21d2961",
+      "source": null,
+      "observed_at": "2026-11-17T06:49:01.9697164+00:00",
+      "score": 1275.0428,
+      "total_us": 303.52,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 114.592
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 114.592
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 15.936
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 58.4
+        }
+      ]
+    },
+    {
+      "problem": "batch-norm",
+      "sha256": "693c3f8a06685d2f7aeb07fb3b4aad94f714d7b83e3ee796aa0b09bf45d17dea",
+      "source": null,
+      "observed_at": "2026-11-17T14:45:52.5095357+00:00",
+      "score": 1297.9642,
+      "total_us": 298.16,
+      "passed": 4,
+      "tests": 4,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "B=16, F=64, D1=256, D2=256",
+          "runtime_us": 113.136
+        },
+        {
+          "id": 2,
+          "shape": "B=32, F=128, D1=128, D2=128",
+          "runtime_us": 113.024
+        },
+        {
+          "id": 3,
+          "shape": "B=8, F=256, D1=64, D2=64",
+          "runtime_us": 16.0
+        },
+        {
+          "id": 4,
+          "shape": "B=4, F=32, D1=512, D2=512",
+          "runtime_us": 56.0
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "sha256": "94b96173da882ff610f001616c12cc48661a6e2639974d1d2f5908327c435daa",
+      "source": null,
+      "observed_at": "2026-11-17T02:19:51.7502532+00:00",
+      "score": 855.5873,
+      "total_us": 225.728,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 28.576
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 28.928
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 29.76
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 44.576
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 46.112
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 47.776
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "sha256": "ee740ddb38c088687511f600e201ba10d6e576a6ea2aee0279efd28fa48a86f2",
+      "source": null,
+      "observed_at": "2026-11-17T02:32:30.0797136+00:00",
+      "score": 1227.0636,
+      "total_us": 157.392,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 20.064
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 21.056
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 22.112
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 29.84
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 31.296
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 33.024
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "sha256": "3e29d58e6e45d7a708d8848767c7a9541f4c2700445e36efd92eb261c1f8a9d0",
+      "source": null,
+      "observed_at": "2026-11-17T02:40:34.5216273+00:00",
+      "score": 1409.4611,
+      "total_us": 137.024,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 17.856
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 19.424
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 19.952
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 24.96
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 27.024
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 27.808
+        }
+      ]
+    },
+    {
+      "problem": "box-blur",
+      "sha256": "da37f317c69717922313883f5863678870ffa947ad56a7688bc10041439754a7",
+      "source": "3/code.cpp",
+      "observed_at": "2026-11-17T02:43:27.8319657+00:00",
+      "score": 1500,
+      "total_us": 118.272,
+      "passed": 6,
+      "tests": 6,
+      "timing_protocol": "gpu-only-median-1",
+      "cases": [
+        {
+          "id": 1,
+          "shape": "1920x1080, kernel=15x15",
+          "runtime_us": 15.168
+        },
+        {
+          "id": 2,
+          "shape": "1920x1080, kernel=21x21",
+          "runtime_us": 17.024
+        },
+        {
+          "id": 3,
+          "shape": "1920x1080, kernel=27x27",
+          "runtime_us": 17.536
+        },
+        {
+          "id": 4,
+          "shape": "2048x2048, kernel=15x15",
+          "runtime_us": 20.0
+        },
+        {
+          "id": 5,
+          "shape": "2048x2048, kernel=21x21",
+          "runtime_us": 23.808
+        },
+        {
+          "id": 6,
+          "shape": "2048x2048, kernel=27x27",
+          "runtime_us": 24.736
+        }
+      ]
+    }
+  ]
+}

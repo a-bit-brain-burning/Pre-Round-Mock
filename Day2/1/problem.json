@@ -1,0 +1,61 @@
+{
+  "title": "3D Average Pooling",
+  "slug": "avg-pool-3d",
+  "parameters": [
+    {
+      "name": "input",
+      "type": "float",
+      "const": "true",
+      "pointer": "true"
+    },
+    {
+      "name": "kernel_size",
+      "type": "int",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "stride",
+      "type": "int",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "padding",
+      "type": "int",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "output",
+      "type": "float",
+      "const": "false",
+      "pointer": "true"
+    },
+    {
+      "name": "H",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "W",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "D",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    }
+  ],
+  "contest": {
+    "id": "practice-2026-11-17",
+    "title": "practice-2026-11-17",
+    "label": "A",
+    "basePoints": 1000,
+    "baselineTimeMs": 1.915324
+  }
+}

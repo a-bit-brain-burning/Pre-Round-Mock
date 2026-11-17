@@ -1,0 +1,429 @@
+{
+  "utc": "2026-11-17T14:59:34.779736+00:00",
+  "seed": 1117,
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "torch": "2.13.0+cu130",
+  "torch_cuda": "13.0",
+  "nvcc": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0",
+  "problems": {
+    "1": {
+      "source": "1/code.cpp",
+      "sha256": "b204b5376e485e17d5aa6a7b7eccdc933ff36e791e2b027bfb0fd139755a15e1",
+      "cases": [
+        {
+          "shape": [
+            1,
+            1,
+            1
+          ],
+          "kernel": 1,
+          "stride": 1,
+          "padding": 0,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            7,
+            9,
+            17
+          ],
+          "kernel": 2,
+          "stride": 1,
+          "padding": 0,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            10,
+            14,
+            103
+          ],
+          "kernel": 3,
+          "stride": 3,
+          "padding": 0,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            16,
+            13,
+            97
+          ],
+          "kernel": 3,
+          "stride": 3,
+          "padding": 1,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            11,
+            17,
+            37
+          ],
+          "kernel": 5,
+          "stride": 2,
+          "padding": 0,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            13,
+            9,
+            81
+          ],
+          "kernel": 5,
+          "stride": 2,
+          "padding": 2,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            17,
+            18,
+            101
+          ],
+          "kernel": 7,
+          "stride": 3,
+          "padding": 2,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            9,
+            11,
+            12
+          ],
+          "kernel": 4,
+          "stride": 2,
+          "padding": 2,
+          "output_start": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            192,
+            192,
+            192
+          ],
+          "kernel": 5,
+          "stride": 2,
+          "padding": 2,
+          "output_start": 4,
+          "max_abs": 2.682209014892578e-07
+        },
+        {
+          "shape": [
+            192,
+            192,
+            192
+          ],
+          "kernel": 5,
+          "stride": 2,
+          "padding": 2,
+          "output_start": 1,
+          "max_abs": 2.384185791015625e-07
+        },
+        {
+          "shape": [
+            224,
+            224,
+            224
+          ],
+          "kernel": 7,
+          "stride": 3,
+          "padding": 3,
+          "output_start": 4,
+          "max_abs": 2.086162567138672e-07
+        },
+        {
+          "shape": [
+            224,
+            224,
+            224
+          ],
+          "kernel": 7,
+          "stride": 3,
+          "padding": 3,
+          "output_start": 1,
+          "max_abs": 2.086162567138672e-07
+        },
+        {
+          "shape": [
+            512,
+            512,
+            512
+          ],
+          "kernel": 3,
+          "stride": 3,
+          "padding": 1,
+          "output_start": 4,
+          "max_abs": 2.980232238769531e-07
+        },
+        {
+          "shape": [
+            784,
+            784,
+            784
+          ],
+          "kernel": 5,
+          "stride": 2,
+          "padding": 2,
+          "output_start": 4,
+          "max_abs": 2.980232238769531e-07
+        },
+        {
+          "shape": [
+            1024,
+            1024,
+            1024
+          ],
+          "kernel": 3,
+          "stride": 3,
+          "padding": 1,
+          "output_start": 4,
+          "max_abs": 2.980232238769531e-07
+        }
+      ]
+    },
+    "2": {
+      "source": "2/code.cpp",
+      "sha256": "940355e67c4c3ffdf7502841c5267968ddb875668d95fccfe7537a19473b55d1",
+      "cases": [
+        {
+          "shape": [
+            1,
+            2,
+            3,
+            5
+          ],
+          "input": "axes",
+          "max_abs": 2.384185791015625e-07,
+          "batch_only_vs_reference_max_abs": 2.1125729084014893
+        },
+        {
+          "shape": [
+            3,
+            5,
+            7,
+            13
+          ],
+          "input": "random",
+          "max_abs": 2.384185791015625e-07
+        },
+        {
+          "shape": [
+            4,
+            7,
+            3,
+            129
+          ],
+          "input": "constant",
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            5,
+            3,
+            11,
+            191
+          ],
+          "input": "large_mean",
+          "max_abs": 5.820766091346741e-11
+        },
+        {
+          "shape": [
+            4,
+            4,
+            256,
+            256
+          ],
+          "input": "isolated",
+          "max_abs": 3.0517578125e-05
+        },
+        {
+          "shape": [
+            2,
+            2,
+            512,
+            512
+          ],
+          "input": "wide_values",
+          "max_abs": 4.76837158203125e-07
+        },
+        {
+          "shape": [
+            16,
+            64,
+            256,
+            256
+          ],
+          "input": "random",
+          "max_abs": 9.5367431640625e-07
+        },
+        {
+          "shape": [
+            32,
+            128,
+            128,
+            128
+          ],
+          "input": "random",
+          "max_abs": 9.5367431640625e-07
+        },
+        {
+          "shape": [
+            8,
+            256,
+            64,
+            64
+          ],
+          "input": "random",
+          "max_abs": 9.5367431640625e-07
+        },
+        {
+          "shape": [
+            4,
+            32,
+            512,
+            512
+          ],
+          "input": "random",
+          "max_abs": 9.5367431640625e-07
+        }
+      ]
+    },
+    "3": {
+      "source": "3/code.cpp",
+      "sha256": "da37f317c69717922313883f5863678870ffa947ad56a7688bc10041439754a7",
+      "cases": [
+        {
+          "shape": [
+            1,
+            1
+          ],
+          "kernel": 1,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            1,
+            17
+          ],
+          "kernel": 15,
+          "max_abs": 1.1920928955078125e-07
+        },
+        {
+          "shape": [
+            5,
+            3
+          ],
+          "kernel": 27,
+          "max_abs": 0.0
+        },
+        {
+          "shape": [
+            19,
+            101
+          ],
+          "kernel": 3,
+          "max_abs": 1.1920928955078125e-07
+        },
+        {
+          "shape": [
+            35,
+            109
+          ],
+          "kernel": 15,
+          "max_abs": 1.043081283569336e-07
+        },
+        {
+          "shape": [
+            17,
+            93
+          ],
+          "kernel": 21,
+          "max_abs": 8.940696716308594e-08
+        },
+        {
+          "shape": [
+            33,
+            197
+          ],
+          "kernel": 27,
+          "max_abs": 1.043081283569336e-07
+        },
+        {
+          "shape": [
+            15,
+            8
+          ],
+          "kernel": 31,
+          "max_abs": 1.4901161193847656e-08
+        },
+        {
+          "shape": [
+            1920,
+            1080
+          ],
+          "kernel": 15,
+          "max_abs": 2.384185791015625e-07
+        },
+        {
+          "shape": [
+            1920,
+            1080
+          ],
+          "kernel": 21,
+          "max_abs": 2.086162567138672e-07
+        },
+        {
+          "shape": [
+            1920,
+            1080
+          ],
+          "kernel": 27,
+          "max_abs": 2.1606683731079102e-07
+        },
+        {
+          "shape": [
+            2048,
+            2048
+          ],
+          "kernel": 15,
+          "max_abs": 2.2351741790771484e-07
+        },
+        {
+          "shape": [
+            2048,
+            2048
+          ],
+          "kernel": 21,
+          "max_abs": 2.5331974029541016e-07
+        },
+        {
+          "shape": [
+            2048,
+            2048
+          ],
+          "kernel": 27,
+          "max_abs": 2.1606683731079102e-07
+        },
+        {
+          "shape": [
+            1080,
+            1920
+          ],
+          "kernel": 21,
+          "max_abs": 2.682209014892578e-07
+        }
+      ]
+    }
+  }
+}

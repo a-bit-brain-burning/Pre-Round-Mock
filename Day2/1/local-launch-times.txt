@@ -1,0 +1,11 @@
+E2E 192 direct enqueue 6.593 complete 66.841 event 47.200 batch8 47.496 setup 0.000
+E2E 192 graph-update enqueue 5.888 complete 65.434 event 47.424 batch8 47.407 setup 973.995
+E2E 224 direct enqueue 37.258 complete 206.310 event 146.624 batch8 144.115 setup 0.000
+E2E 224 graph-update enqueue 39.036 complete 199.297 event 146.112 batch8 142.987 setup 24.013
+E2E 512 direct enqueue 43.999 complete 1604.753 event 1502.400 batch8 1506.814 setup 0.000
+E2E 512 graph-update enqueue 56.512 complete 1611.453 event 1501.952 batch8 1506.832 setup 56.374
+E2E 784 direct enqueue 81.332 complete 6316.084 event 6177.088 batch8 6174.642 setup 0.000
+E2E 784 graph-update enqueue 84.518 complete 6290.737 event 6174.368 batch8 6175.065 setup 70.383
+E2E 1024 direct enqueue 80.026 complete 12205.451 event 12076.513 batch8 12081.653 setup 0.000
+E2E 1024 graph-update enqueue 77.748 complete 12214.946 event 12079.903 batch8 12081.775 setup 71.432
+PASS 249b15a8d8c33aae81f605c387194e69431eca9d8432b7a293e0d45df741a4ea

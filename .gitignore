@@ -6,3 +6,8 @@ __pycache__/
 *.o
 *.cubin
 *.ptx
+/auto-work.md
+/competition-*.local.md
+/Day*/**/team-*.cu
+/Day*/**/team-*.py
+/Day*/**/team-best-*.json

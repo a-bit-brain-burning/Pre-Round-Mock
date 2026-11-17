@@ -1,0 +1,43 @@
+{
+  "title": "Box Blur",
+  "slug": "box-blur",
+  "parameters": [
+    {
+      "name": "input_image",
+      "type": "float",
+      "const": "true",
+      "pointer": "true"
+    },
+    {
+      "name": "kernel_size",
+      "type": "int",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "output_image",
+      "type": "float",
+      "const": "false",
+      "pointer": "true"
+    },
+    {
+      "name": "height",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    },
+    {
+      "name": "width",
+      "type": "size_t",
+      "const": "false",
+      "pointer": "false"
+    }
+  ],
+  "contest": {
+    "id": "practice-2026-11-17",
+    "title": "practice-2026-11-17",
+    "label": "C",
+    "basePoints": 1000,
+    "baselineTimeMs": 0.19313
+  }
+}
