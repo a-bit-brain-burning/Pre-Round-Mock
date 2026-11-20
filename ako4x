@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mock_root=$(cd -- "$(dirname -- "$0")" && pwd -P)
+ako4x_root=${AKO4X_ROOT:-"$(dirname -- "$mock_root")/AKO4X"}
+launcher="$ako4x_root/scripts/preround_codex.py"
+if [[ ! -f "$launcher" ]]; then
+    printf 'AKO4X launcher not found at %s. Set AKO4X_ROOT to your AKO4X checkout.\n' "$launcher" >&2
+    exit 1
+fi
+exec python3 "$launcher" campaign --mock-root "$mock_root" "$@"
