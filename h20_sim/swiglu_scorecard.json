@@ -1,0 +1,17 @@
+{
+  "protocol": "preliminary-e2e",
+  "candidate_sha256": "c23d3bf921a350df4e0d7e95ccdf79d62b6d8c3a1ec87bcc30fbc921d7984995",
+  "incumbent": 0,
+  "rule": {"mode": "preliminary_per_case", "base_points": 1000, "case_ids": ["swiglu-bf16-32x1024"]},
+  "calibration": [],
+  "cases": [{
+    "id": "swiglu-bf16-32x1024",
+    "model_id": "results-sim004-candidates-20261110-054215.json:0",
+    "context": {"family": "swiglu", "shape": "32x1024", "input_state": "cold", "dtype": "bf16", "layout": "contiguous", "estimator": "replay_e2e", "protocol": "preliminary-e2e"},
+    "input_identity": [
+      ["a", [32, 1024], "torch.bfloat16", "d6dd5c4c9a69450c45aec31fb061e18ed3e0af7e7d611da01a56e77749c089dd"],
+      ["b", [32, 1024], "torch.bfloat16", "1de171c671f4d59626580b45a3d81007ca17c0af93fcb308a1c2a98db110ceb0"],
+      ["g", [32, 1024], "torch.bfloat16", "3a5a307fb163e13974d744a644bd7baf02ad05481ba761418b4d5c230ffe35f4"]
+    ]
+  }]
+}

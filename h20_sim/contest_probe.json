@@ -1,0 +1,17 @@
+{
+  "device": "NVIDIA H20",
+  "sm_count": 78,
+  "l2_bytes": 62914560,
+  "run_id": "5bedc9a2-973c-4a86-a1f8-b82e6f51e4fd",
+  "source_sha256": "80aa1ab3f03dac6f397fa2d7764209f36f0a7dc829d70f5b05de626bc4027ecf",
+  "receipt_sha256": "55f3b7da50ddeb87346cb648a8a886592a2de072ffbf082d9712229c0d780472",
+  "layout": "fp32-row-major-float4-16x16",
+  "dtype": "fp32",
+  "unit": "us",
+  "samples": [
+    {"matrix_bytes": 16777216, "event": 3.264, "tiny": 5.376, "read": 10.848, "write": 10.080, "copy": 15.872, "warmcopy": 11.168},
+    {"matrix_bytes": 67108864, "event": 3.264, "tiny": 5.536, "read": 23.488, "write": 22.848, "copy": 43.808, "warmcopy": 44.192},
+    {"matrix_bytes": 150994944, "event": 3.264, "tiny": 5.504, "read": 45.440, "write": 44.000, "copy": 89.792, "warmcopy": 90.208},
+    {"matrix_bytes": 134217728, "event": 3.264, "tiny": 5.536, "read": 40.384, "write": 39.488, "copy": 80.640, "warmcopy": 81.024}
+  ]
+}

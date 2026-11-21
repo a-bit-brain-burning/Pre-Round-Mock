@@ -1,0 +1,9 @@
+{
+  "backend": "FlashGPU-Sim",
+  "repository": "https://github.com/FlashGPU-Sim/FlashGPU-Sim.git",
+  "revision": "7a48f7685d604d71da3692fb1b24825fdb7cc79c",
+  "baseline_config": "configs/SM90_H100",
+  "timing_status": "UPSTREAM_H100_UNCALIBRATED_FOR_H20",
+  "target": "sm90",
+  "h20_calibrated": false
+}

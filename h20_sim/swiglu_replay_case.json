@@ -1,0 +1,318 @@
+{
+  "source_report": "results-sim004-performance-20261110-055509.json",
+  "cases": [
+    {
+      "name": "swiglu_seed1108_variant0",
+      "task": "swiglu",
+      "functional_status": "FUNCTIONAL_PASS",
+      "dispatch": "diagnostic_block256",
+      "comparison_group": "swiglu_seed1108",
+      "source_sha256": {
+        "SwiGLU_backward/solution.py": "c23d3bf921a350df4e0d7e95ccdf79d62b6d8c3a1ec87bcc30fbc921d7984995",
+        "SwiGLU_backward/reference.py": "6074827b83794a8b7f5fda1d3dc18c1c7f20fab4345bb399718f8573fd4ebf51"
+      },
+      "input_identity": [
+        [
+          "a",
+          [
+            32,
+            1024
+          ],
+          "torch.bfloat16",
+          "d6dd5c4c9a69450c45aec31fb061e18ed3e0af7e7d611da01a56e77749c089dd"
+        ],
+        [
+          "b",
+          [
+            32,
+            1024
+          ],
+          "torch.bfloat16",
+          "1de171c671f4d59626580b45a3d81007ca17c0af93fcb308a1c2a98db110ceb0"
+        ],
+        [
+          "g",
+          [
+            32,
+            1024
+          ],
+          "torch.bfloat16",
+          "3a5a307fb163e13974d744a644bd7baf02ad05481ba761418b4d5c230ffe35f4"
+        ]
+      ],
+      "semantic_identity": {
+        "window": null,
+        "source_contract": {
+          "SwiGLU_backward/solution.py": "c23d3bf921a350df4e0d7e95ccdf79d62b6d8c3a1ec87bcc30fbc921d7984995",
+          "SwiGLU_backward/reference.py": "6074827b83794a8b7f5fda1d3dc18c1c7f20fab4345bb399718f8573fd4ebf51"
+        },
+        "outputs": [
+          [
+            "da",
+            [
+              32,
+              1024
+            ],
+            "torch.bfloat16"
+          ],
+          [
+            "db",
+            [
+              32,
+              1024
+            ],
+            "torch.bfloat16"
+          ]
+        ]
+      },
+      "evidence_verified": true,
+      "known_numerical_risk": false,
+      "work": [
+        {
+          "entry": "_backward",
+          "launched_ctas": 128,
+          "active_ctas": 128,
+          "empty_ctas": 0,
+          "operations": {
+            "fp32": 360448,
+            "fp64": 0,
+            "tensor": 0,
+            "exp2": 32768,
+            "div32": 32768,
+            "div64": 0,
+            "convert": 163840,
+            "integer": 655360.0,
+            "atomic": 0
+          },
+          "traffic": {
+            "a": {
+              "read_bytes": 65536,
+              "unique_read_bytes": 65536,
+              "write_bytes": 0,
+              "intermediate": false
+            },
+            "b": {
+              "read_bytes": 65536,
+              "unique_read_bytes": 65536,
+              "write_bytes": 0,
+              "intermediate": false
+            },
+            "g": {
+              "read_bytes": 65536,
+              "unique_read_bytes": 65536,
+              "write_bytes": 0,
+              "intermediate": false
+            },
+            "da": {
+              "read_bytes": 0,
+              "unique_read_bytes": 0,
+              "write_bytes": 65536,
+              "intermediate": true
+            },
+            "db": {
+              "read_bytes": 0,
+              "unique_read_bytes": 0,
+              "write_bytes": 65536,
+              "intermediate": true
+            }
+          },
+          "logical_bytes": 327680,
+          "max_loop_visits": 1,
+          "mean_loop_visits": 1,
+          "max_atomic_chain": 0,
+          "reduction_depth_proxy": 0,
+          "shared_bytes_proxy": 0,
+          "notes": [],
+          "counting_basis": "source logical valid elements and padded arithmetic; auxiliary/shared counts are proxies"
+        }
+      ],
+      "launches": [
+        {
+          "entry": "_backward",
+          "target": "sm_90a",
+          "ptx_version": "8.7",
+          "grid": [
+            128,
+            1,
+            1
+          ],
+          "constants": {
+            "N": 32768,
+            "BLOCK": 256
+          },
+          "options": {
+            "num_warps": 4
+          },
+          "resources": {
+            "function": "_backward",
+            "reg": 19,
+            "stack": 0,
+            "shared": 0,
+            "local": 0
+          },
+          "shared_bytes": 0,
+          "ptx_sha256": "c17a2cc3437f372eb8c0719855daaeb17af40f8defcd57eca7f5c326077956ab",
+          "cubin_sha256": "8110f563430c67fa0700492acecd44699c5aa6d3560322fcbcce7feeceb02d57"
+        }
+      ],
+      "model": {
+        "status": "MODELED_UNCALIBRATED",
+        "cache": "cold",
+        "nominal": {
+          "kernels": [
+            {
+              "device_us": 2.132113350760996,
+              "pipeline_us": {
+                "hbm": 0.3044255530698484,
+                "l2": 0.0918528,
+                "shared_l1_proxy": 0.0,
+                "tensor": 0.0,
+                "fp32": 0.05061013824884793,
+                "fp64": 0.0,
+                "exp2": 0.19968,
+                "div32": 0.79872,
+                "div64": 0.0,
+                "convert": 0.79872,
+                "integer": 0.34972677595628415,
+                "atomic": 0.0,
+                "dependency_proxy": 0.045000000000000005
+              },
+              "dominant": "div32",
+              "cta_dispatch_us": 0.057391060669749194,
+              "device_launch_us": 1.0,
+              "occupancy": {
+                "ctas_per_sm": 16,
+                "warps_per_sm": 64,
+                "occupancy_fraction_upper_bound": 1.0,
+                "allocated_registers_per_cta": 3072,
+                "allocated_shared_per_cta": 1024,
+                "limiting_resources": [
+                  "warps"
+                ],
+                "limits": {
+                  "registers": 21,
+                  "shared": 228,
+                  "warps": 16,
+                  "blocks": 32
+                },
+                "status": "ARCHITECTURAL_RESOURCE_BOUND_NOT_MEASURED_OCCUPANCY"
+              },
+              "resident_waves": 1,
+              "utilization_assumptions": {
+                "memory": 0.41025641025641024,
+                "scalar": 0.41025641025641024,
+                "tensor": 0.8205128205128205
+              },
+              "modeled_hbm_bytes": 376832.0,
+              "modeled_l2_bytes": 376832.0,
+              "modeled_spill_bytes": 0.0,
+              "spill": {
+                "status": "NO_REPORTED_SPILLS",
+                "static_sites": 0,
+                "static_load_bytes_per_thread": 0,
+                "static_store_bytes_per_thread": 0,
+                "dynamic_bytes_min": 0,
+                "dynamic_bytes_cap": 0,
+                "call_audit": null,
+                "method": "Every static local-memory site, all lanes and launched CTAs, (max source loop visits + 1) * max(1, audited call sites). Helpers must be acyclic. Predicates/branches untraced; zero lower bound. Not a cycle or SASS execution model.",
+                "ranking_eligible": true
+              }
+            }
+          ],
+          "timeline": {
+            "device_chain_us": 2.132113350760996,
+            "e2e_synced_us": 13.532113350760996,
+            "graph_replay_us": 4.632113350760996,
+            "host_prelaunch_us": 4.4,
+            "events": [
+              {
+                "kernel": 0,
+                "submitted_us": 8.4,
+                "start_us": 8.4,
+                "end_us": 10.532113350760996
+              }
+            ],
+            "boundary": "warm JIT/caching allocator; resident inputs; one stream; eager E2E includes final wait. Graph replay excludes capture, allocations and final host wait. Official timing boundary unconfirmed."
+          },
+          "allocated_bytes": 327680,
+          "allocations": 2,
+          "ranking_eligible": true
+        },
+        "scenario_ranges_us": {
+          "device_chain_us": {
+            "min": 0.5885470085470086,
+            "nominal": 2.132113350760996,
+            "max": 28.755114948877498
+          },
+          "e2e_synced_us": {
+            "min": 3.2885470085470088,
+            "nominal": 13.532113350760996,
+            "max": 61.8066942250674
+          },
+          "graph_replay_us": {
+            "min": 1.5885470085470086,
+            "nominal": 4.632113350760996,
+            "max": 32.799383617258954
+          }
+        },
+        "scenario_count": 333,
+        "range_semantics": "sampled assumptions, not confidence intervals or guaranteed bounds",
+        "dominant_pipeline_counts": [
+          {
+            "div32": 149,
+            "exp2": 11,
+            "convert": 105,
+            "integer": 45,
+            "hbm": 20,
+            "dependency_proxy": 3
+          }
+        ],
+        "top_sensitivities": [
+          {
+            "parameter_endpoint": "host_wrapper_us:high",
+            "e2e_synced_us": 22.532113350760994,
+            "relative_change": 0.6650845855864687
+          },
+          {
+            "parameter_endpoint": "host_submit_us:high",
+            "e2e_synced_us": 21.532113350760994,
+            "relative_change": 0.5911862982990834
+          },
+          {
+            "parameter_endpoint": "host_sync_us:high",
+            "e2e_synced_us": 20.532113350760994,
+            "relative_change": 0.517288011011698
+          },
+          {
+            "parameter_endpoint": "host_allocation_us:high",
+            "e2e_synced_us": 18.132113350760996,
+            "relative_change": 0.33993212152197305
+          },
+          {
+            "parameter_endpoint": "convert_Gops:low",
+            "e2e_synced_us": 16.726993350760996,
+            "relative_change": 0.23609616008872192
+          },
+          {
+            "parameter_endpoint": "host_submit_us:low",
+            "e2e_synced_us": 10.532113350760996,
+            "relative_change": -0.22169486186215626
+          },
+          {
+            "parameter_endpoint": "host_sync_us:low",
+            "e2e_synced_us": 11.032113350760996,
+            "relative_change": -0.18474571821846353
+          },
+          {
+            "parameter_endpoint": "div32_Gops:low",
+            "e2e_synced_us": 15.928273350760996,
+            "relative_change": 0.1770721200665415
+          }
+        ]
+      },
+      "status": "MODELED_UNCALIBRATED",
+      "id": "results-sim004-candidates-20261110-054215.json:0",
+      "evidence_report": "/mnt/d/STUDY/2026fall/Ubiquant/Preround/h20_sim/results-sim004-candidates-20261110-054215.json"
+    }
+  ]
+}

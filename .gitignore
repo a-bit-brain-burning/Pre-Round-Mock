@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 .cache/
+.venv/
+paced-model-*.json.gz
 *.so
 *.o
 *.cubin

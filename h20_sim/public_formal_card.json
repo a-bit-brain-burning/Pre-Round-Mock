@@ -1,0 +1,104 @@
+{
+  "protocol": "gpu-only-median-1",
+  "candidate_sha256": "44683d0eceb0d4f0f007fe672bc2bfd1f1a6ad86d7eb162df7e7e9514f30f730",
+  "incumbent": 0,
+  "rule": {
+    "mode": "preliminary_per_case",
+    "base_points": 1000,
+    "case_ids": [
+      "shape=(16, 128, 256), dim=1",
+      "shape=(32, 512, 512), dim=0",
+      "shape=(8, 1024, 1024), dim=2",
+      "shape=(64, 128, 128, 128), dim=2",
+      "shape=(4, 256, 256, 256), dim=1",
+      "shape=(128, 64, 64, 64), dim=3"
+    ]
+  },
+  "calibration": [],
+  "cases": [
+    {
+      "id": "shape=(16, 128, 256), dim=1",
+      "context": {
+        "protocol": "gpu-only-median-1",
+        "family": "argmax",
+        "shape": "shape=(16, 128, 256), dim=1",
+        "input_state": "archived-practice",
+        "dtype": "fp32",
+        "layout": "contiguous",
+        "estimator": "paired_measurement"
+      },
+      "measurement_us": 7.168,
+      "benchmark_us": null
+    },
+    {
+      "id": "shape=(32, 512, 512), dim=0",
+      "context": {
+        "protocol": "gpu-only-median-1",
+        "family": "argmax",
+        "shape": "shape=(32, 512, 512), dim=0",
+        "input_state": "archived-practice",
+        "dtype": "fp32",
+        "layout": "contiguous",
+        "estimator": "paired_measurement"
+      },
+      "measurement_us": 18.208,
+      "benchmark_us": null
+    },
+    {
+      "id": "shape=(8, 1024, 1024), dim=2",
+      "context": {
+        "protocol": "gpu-only-median-1",
+        "family": "argmax",
+        "shape": "shape=(8, 1024, 1024), dim=2",
+        "input_state": "archived-practice",
+        "dtype": "fp32",
+        "layout": "contiguous",
+        "estimator": "paired_measurement"
+      },
+      "measurement_us": 18.72,
+      "benchmark_us": null
+    },
+    {
+      "id": "shape=(64, 128, 128, 128), dim=2",
+      "context": {
+        "protocol": "gpu-only-median-1",
+        "family": "argmax",
+        "shape": "shape=(64, 128, 128, 128), dim=2",
+        "input_state": "archived-practice",
+        "dtype": "fp32",
+        "layout": "contiguous",
+        "estimator": "paired_measurement"
+      },
+      "measurement_us": 159.68,
+      "benchmark_us": null
+    },
+    {
+      "id": "shape=(4, 256, 256, 256), dim=1",
+      "context": {
+        "protocol": "gpu-only-median-1",
+        "family": "argmax",
+        "shape": "shape=(4, 256, 256, 256), dim=1",
+        "input_state": "archived-practice",
+        "dtype": "fp32",
+        "layout": "contiguous",
+        "estimator": "paired_measurement"
+      },
+      "measurement_us": 87.072,
+      "benchmark_us": null
+    },
+    {
+      "id": "shape=(128, 64, 64, 64), dim=3",
+      "context": {
+        "protocol": "gpu-only-median-1",
+        "family": "argmax",
+        "shape": "shape=(128, 64, 64, 64), dim=3",
+        "input_state": "archived-practice",
+        "dtype": "fp32",
+        "layout": "contiguous",
+        "estimator": "paired_measurement"
+      },
+      "measurement_us": 50.816,
+      "benchmark_us": null
+    }
+  ]
+}
